@@ -193,6 +193,21 @@ export function deleteProfile(id: string) {
   writeAll(all);
 }
 
+export function deleteProfiles(ids: string[]) {
+  const set = new Set(ids);
+  writeAll(listProfiles().filter((p) => !set.has(p.id)));
+}
+
+export function setProfilesPaused(ids: string[], paused: boolean) {
+  const set = new Set(ids);
+  const now = Date.now();
+  writeAll(
+    listProfiles().map((p) =>
+      set.has(p.id) ? { ...p, paused, updatedAt: now } : p,
+    ),
+  );
+}
+
 export function duplicateProfile(id: string): StoredProfile | undefined {
   const all = listProfiles();
   const src = all.find((p) => p.id === id);
