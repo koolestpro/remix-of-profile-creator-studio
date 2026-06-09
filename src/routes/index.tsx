@@ -607,6 +607,8 @@ function FolderItem({
 function ProfileCard({
   profile,
   folders,
+  selected,
+  onToggleSelect,
   onDelete,
   onDuplicate,
   onCopyUrl,
@@ -614,6 +616,8 @@ function ProfileCard({
 }: {
   profile: StoredProfile;
   folders: Folder[];
+  selected: boolean;
+  onToggleSelect: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onCopyUrl: () => void;
@@ -627,8 +631,16 @@ function ProfileCard({
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(qrTarget)}`;
 
   return (
-    <div className="group flex items-center gap-4 overflow-hidden rounded-xl border border-border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md">
-      <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1">
+    <div
+      className={`group flex items-center gap-4 overflow-hidden rounded-xl border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md ${
+        selected ? "border-primary ring-1 ring-primary/40" : "border-border"
+      }`}
+    >
+      <div
+        className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 ${
+          profile.paused ? "opacity-40 grayscale" : ""
+        }`}
+      >
         <img
           src={qrSrc}
           alt={`QR code for ${profile.profileName}`}
