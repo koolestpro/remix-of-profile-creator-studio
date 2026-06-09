@@ -85,6 +85,8 @@ function Portal() {
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
   const [pendingDelete, setPendingDelete] = useState<StoredProfile | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
 
   const refresh = () => {
     setProfiles(listProfiles());
