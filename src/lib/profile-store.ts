@@ -2,11 +2,20 @@ import type { ProfileData } from "@/lib/profile-types";
 
 export interface StoredProfile extends ProfileData {
   id: string;
+  folderId?: string | null;
   updatedAt: number;
   createdAt: number;
 }
 
-const KEY = "lps:profiles:v2";
+export interface Folder {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: number;
+}
+
+const KEY = "lps:profiles:v3";
+const FOLDERS_KEY = "lps:folders:v1";
 
 export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
   return {
