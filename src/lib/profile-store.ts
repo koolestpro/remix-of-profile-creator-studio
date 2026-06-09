@@ -6,7 +6,7 @@ export interface StoredProfile extends ProfileData {
   createdAt: number;
 }
 
-const KEY = "lps:profiles";
+const KEY = "lps:profiles:v2";
 
 export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
   return {
