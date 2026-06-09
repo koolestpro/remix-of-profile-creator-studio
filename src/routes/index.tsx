@@ -181,9 +181,9 @@ function ProfileCard({
   const updated = new Date(profile.updatedAt).toLocaleDateString();
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:shadow-md">
+    <div className="group flex items-center gap-4 overflow-hidden rounded-xl border border-border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md">
       <div
-        className="relative h-28"
+        className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg"
         style={{
           background: profile.headerImage
             ? `url(${profile.headerImage}) center/cover`
@@ -191,56 +191,54 @@ function ProfileCard({
         }}
       >
         {profile.secondaryImage && (
-          <div className="absolute bottom-0 left-4 h-12 w-12 translate-y-1/2 overflow-hidden rounded-full border-2 border-card bg-card">
-            <img
-              src={profile.secondaryImage}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+          <div className="absolute bottom-1 left-1 h-7 w-7 overflow-hidden rounded-full border-2 border-card bg-card">
+            <img src={profile.secondaryImage} alt="" className="h-full w-full object-cover" />
           </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col p-5 pt-7">
-        <h3 className="truncate text-base font-semibold text-foreground">
-          {profile.profileName}
-        </h3>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {profile.businessName || "—"}
-        </p>
-        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <h3 className="truncate text-sm font-semibold text-foreground">
+            {profile.profileName}
+          </h3>
+          <span className="truncate text-xs text-muted-foreground">
+            · {profile.businessName || "—"}
+          </span>
+        </div>
+        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
           <span>{profile.links.length} links</span>
           <span>•</span>
           <span>Updated {updated}</span>
+          <span>•</span>
+          <span className="truncate font-mono text-[11px]">/p/{slug}</span>
         </div>
-        <div className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
-          /p/{slug}
-        </div>
+      </div>
 
-        <div className="mt-4 flex items-center gap-2">
-          <Button asChild size="sm" className="flex-1">
-            <Link to="/edit/$id" params={{ id: profile.id }}>
-              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
-            </Link>
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="px-2"
-            title="Open public URL"
-            onClick={() => window.open(`/p/${slug}`, "_blank")}
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="px-2 text-destructive hover:text-destructive"
-            title="Delete"
-            onClick={onDelete}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button asChild size="sm">
+          <Link to="/edit/$id" params={{ id: profile.id }}>
+            <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
+          </Link>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2"
+          title="Open public URL"
+          onClick={() => window.open(`/p/${slug}`, "_blank")}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2 text-destructive hover:text-destructive"
+          title="Delete"
+          onClick={onDelete}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
       </div>
     </div>
   );
