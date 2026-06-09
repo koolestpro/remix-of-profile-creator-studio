@@ -663,48 +663,51 @@ function ProfileCard({
         selected ? "border-primary ring-1 ring-primary/40" : "border-border"
       }`}
     >
-      <div
-        className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 ${
-          profile.paused ? "opacity-40 grayscale" : ""
-        }`}
-      >
-        <img
-          src={qrSrc}
-          alt={`QR code for ${profile.profileName}`}
-          className="h-full w-full object-contain"
-        />
+      <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+        <div
+          className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 ${
+            profile.paused ? "opacity-40 grayscale" : ""
+          }`}
+        >
+          <img
+            src={qrSrc}
+            alt={`QR code for ${profile.profileName}`}
+            className="h-full w-full object-contain"
+          />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {profile.profileName}
+            </h3>
+            <span className="truncate text-xs text-muted-foreground">
+              · {profile.businessName || "—"}
+            </span>
+            {profile.paused && (
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                Paused
+              </span>
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span>Updated {updated}</span>
+            {currentFolder && (
+              <>
+                <span className="hidden sm:inline">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ background: currentFolder.color }}
+                  />
+                  {currentFolder.name}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <h3 className="truncate text-sm font-semibold text-foreground">
-            {profile.profileName}
-          </h3>
-          <span className="truncate text-xs text-muted-foreground">
-            · {profile.businessName || "—"}
-          </span>
-          {profile.paused && (
-            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
-              Paused
-            </span>
-          )}
-        </div>
-        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-          <span>Updated {updated}</span>
-          {currentFolder && (
-            <>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: currentFolder.color }}
-                />
-                {currentFolder.name}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
 
       <div className="flex shrink-0 items-center gap-2">
         <Button asChild size="sm">
