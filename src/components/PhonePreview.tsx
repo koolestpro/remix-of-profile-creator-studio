@@ -94,6 +94,18 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
                 </div>
               ))}
             </div>
+
+            {/* Powered by */}
+            <div className="mt-8 flex flex-col items-center gap-1.5 pb-2">
+              <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/60">
+                POWERED BY
+              </p>
+              <img
+                src={tapandrateLogo.url}
+                alt="tapandrate.co.uk"
+                className="h-5 w-auto object-contain"
+              />
+            </div>
           </div>
         </div>
       </div>
