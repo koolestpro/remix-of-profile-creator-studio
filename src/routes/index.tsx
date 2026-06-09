@@ -158,7 +158,7 @@ function Portal() {
                 : "No profiles match your search."}
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-3">
               {filtered.map((p) => (
                 <ProfileCard key={p.id} profile={p} onDelete={() => handleDelete(p)} />
               ))}
