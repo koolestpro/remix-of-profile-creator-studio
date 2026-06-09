@@ -209,21 +209,13 @@ function ProfileCard({
   const slug = slugify(profile.profileName);
   const updated = new Date(profile.updatedAt).toLocaleDateString();
 
+  const qrTarget = `${typeof window !== "undefined" ? window.location.origin : ""}/p/${slug}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(qrTarget)}`;
+
   return (
     <div className="group flex items-center gap-4 overflow-hidden rounded-xl border border-border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md">
-      <div
-        className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg"
-        style={{
-          background: profile.headerImage
-            ? `url(${profile.headerImage}) center/cover`
-            : profile.bgColor,
-        }}
-      >
-        {profile.secondaryImage && (
-          <div className="absolute bottom-1 left-1 h-7 w-7 overflow-hidden rounded-full border-2 border-card bg-card">
-            <img src={profile.secondaryImage} alt="" className="h-full w-full object-cover" />
-          </div>
-        )}
+      <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1">
+        <img src={qrSrc} alt={`QR code for ${profile.profileName}`} className="h-full w-full object-contain" />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -236,11 +228,7 @@ function ProfileCard({
           </span>
         </div>
         <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{profile.links.length} links</span>
-          <span>•</span>
           <span>Updated {updated}</span>
-          <span>•</span>
-          <span className="truncate font-mono text-[11px]">/p/{slug}</span>
         </div>
       </div>
 
