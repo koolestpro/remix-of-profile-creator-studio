@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Sparkles, Pencil, Trash2, ExternalLink, LayoutGrid } from "lucide-react";
+import { Plus, Search, Sparkles, Pencil, Trash2, ExternalLink, LayoutGrid, Copy, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,6 +9,7 @@ import {
   listProfiles,
   createProfile,
   deleteProfile,
+  duplicateProfile,
   slugify,
   type StoredProfile,
 } from "@/lib/profile-store";
