@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ICON_OPTIONS, renderIcon } from "@/lib/icon-registry";
+import { ICON_OPTIONS, ICON_COLORS, renderIcon } from "@/lib/icon-registry";
 import type { LinkItem, IconKey } from "@/lib/profile-types";
 
 interface Props {
