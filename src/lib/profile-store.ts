@@ -14,8 +14,8 @@ export interface Folder {
   createdAt: number;
 }
 
-const KEY = "lps:profiles:v3";
-const FOLDERS_KEY = "lps:folders:v1";
+const KEY = "lps:profiles:v4";
+const FOLDERS_KEY = "lps:folders:v2";
 
 export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
   return {
@@ -35,25 +35,26 @@ export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
 function seedFolders(): Folder[] {
   const now = Date.now();
   return [
-    { id: "folder-food", name: "Food & Drink", color: "#ef4444", createdAt: now },
-    { id: "folder-wellness", name: "Wellness", color: "#10b981", createdAt: now },
-    { id: "folder-retail", name: "Retail", color: "#6366f1", createdAt: now },
+    { id: "folder-younis", name: "Younis", color: "#ef4444", createdAt: now },
+    { id: "folder-adnan", name: "Adnan", color: "#3b82f6", createdAt: now },
+    { id: "folder-talah", name: "Talah", color: "#10b981", createdAt: now },
+    { id: "folder-juices4life", name: "Juices4Life", color: "#f59e0b", createdAt: now },
   ];
 }
 
 function seed(): StoredProfile[] {
   const now = Date.now();
   const samples: Array<{ name: string; business: string; tagline: string; bg: string; btn: string; folderId: string | null }> = [
-    { name: "Juices4Life Profile", business: "Juices4Life Harlesden", tagline: "Fuel your Life", bg: "#f4ead5", btn: "#111111", folderId: "folder-food" },
-    { name: "Bloom Coffee — Soho", business: "Bloom Coffee", tagline: "Slow brews, fast smiles", bg: "#fde8d4", btn: "#3b2417", folderId: "folder-food" },
-    { name: "Pixel Barbers", business: "Pixel Barbers Camden", tagline: "Sharp fades since 2014", bg: "#1f2937", btn: "#fbbf24", folderId: null },
-    { name: "Nori Sushi Bar", business: "Nori Sushi", tagline: "Fresh from the sea", bg: "#e0f2fe", btn: "#0c4a6e", folderId: "folder-food" },
-    { name: "GreenLeaf Yoga", business: "GreenLeaf Studio", tagline: "Breathe. Move. Glow.", bg: "#dcfce7", btn: "#166534", folderId: "folder-wellness" },
-    { name: "Vinyl & Vines", business: "Vinyl & Vines Wine Bar", tagline: "Records, wine, repeat", bg: "#fce7f3", btn: "#831843", folderId: "folder-food" },
-    { name: "Forge Fitness", business: "Forge Strength Co.", tagline: "Train hard, live strong", bg: "#0f172a", btn: "#ef4444", folderId: "folder-wellness" },
-    { name: "Petal & Stem", business: "Petal & Stem Florist", tagline: "Hand-tied with love", bg: "#fef3c7", btn: "#b45309", folderId: "folder-retail" },
-    { name: "Crust Pizza Co.", business: "Crust Pizza — Shoreditch", tagline: "Wood-fired, always", bg: "#fee2e2", btn: "#991b1b", folderId: "folder-food" },
-    { name: "Stride Sneakers", business: "Stride", tagline: "Step into something new", bg: "#ede9fe", btn: "#5b21b6", folderId: "folder-retail" },
+    { name: "Juices4Life Profile", business: "Juices4Life Harlesden", tagline: "Fuel your Life", bg: "#f4ead5", btn: "#111111", folderId: "folder-juices4life" },
+    { name: "Bloom Coffee — Soho", business: "Bloom Coffee", tagline: "Slow brews, fast smiles", bg: "#fde8d4", btn: "#3b2417", folderId: "folder-younis" },
+    { name: "Pixel Barbers", business: "Pixel Barbers Camden", tagline: "Sharp fades since 2014", bg: "#1f2937", btn: "#fbbf24", folderId: "folder-adnan" },
+    { name: "Nori Sushi Bar", business: "Nori Sushi", tagline: "Fresh from the sea", bg: "#e0f2fe", btn: "#0c4a6e", folderId: "folder-talah" },
+    { name: "GreenLeaf Yoga", business: "GreenLeaf Studio", tagline: "Breathe. Move. Glow.", bg: "#dcfce7", btn: "#166534", folderId: "folder-younis" },
+    { name: "Vinyl & Vines", business: "Vinyl & Vines Wine Bar", tagline: "Records, wine, repeat", bg: "#fce7f3", btn: "#831843", folderId: "folder-adnan" },
+    { name: "Forge Fitness", business: "Forge Strength Co.", tagline: "Train hard, live strong", bg: "#0f172a", btn: "#ef4444", folderId: "folder-talah" },
+    { name: "Petal & Stem", business: "Petal & Stem Florist", tagline: "Hand-tied with love", bg: "#fef3c7", btn: "#b45309", folderId: null },
+    { name: "Crust Pizza Co.", business: "Crust Pizza — Shoreditch", tagline: "Wood-fired, always", bg: "#fee2e2", btn: "#991b1b", folderId: "folder-juices4life" },
+    { name: "Stride Sneakers", business: "Stride", tagline: "Step into something new", bg: "#ede9fe", btn: "#5b21b6", folderId: "folder-adnan" },
   ];
   const iconPool: Array<"google" | "instagram" | "tiktok" | "facebook" | "whatsapp" | "website" | "loyalty"> = [
     "google", "instagram", "tiktok", "facebook", "whatsapp", "website", "loyalty",
