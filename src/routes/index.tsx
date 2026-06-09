@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { ColorField } from "@/components/ColorField";
