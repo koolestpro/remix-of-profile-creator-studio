@@ -1,370 +1,247 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2 } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Search, Sparkles, Pencil, Trash2, ExternalLink, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { ColorField } from "@/components/ColorField";
-import { ImageUploadField } from "@/components/ImageUploadField";
-import { LinkEditor } from "@/components/LinkEditor";
-import { PhonePreview } from "@/components/PhonePreview";
-import type { ProfileData, LinkItem } from "@/lib/profile-types";
+import {
+  listProfiles,
+  createProfile,
+  deleteProfile,
+  slugify,
+  type StoredProfile,
+} from "@/lib/profile-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Link Profile Studio — Design your bio page" },
+      { title: "Profiles — Link Profile Studio" },
       {
         name: "description",
         content:
-          "Design and manage Linktree-style bio profiles. Customize colors, images and links with a live phone preview.",
+          "Manage all your Linktree-style bio profiles in one place. Create, search, edit, and delete profiles.",
       },
     ],
   }),
-  component: Dashboard,
+  component: Portal,
 });
 
-const initialProfile: ProfileData = {
-  profileName: "Juices4Life Profile",
-  headerImage: undefined,
-  secondaryImage: undefined,
-  businessName: "Juices4Life Harlesden",
-  businessDescription: "Fuel your Life",
-  bgColor: "#f4ead5",
-  buttonColor: "#111111",
-  mainButtonText: "View Menu",
-  mainButtonUrl: "https://example.com/menu",
-  links: [
-    {
-      id: crypto.randomUUID(),
-      icon: "google",
-      title: "Leave us a Google review",
-      subtitle: "Share your experience",
-      url: "https://google.com",
-    },
-    {
-      id: crypto.randomUUID(),
-      icon: "instagram",
-      title: "Instagram",
-      subtitle: "Follow us",
-      url: "https://instagram.com",
-    },
-    {
-      id: crypto.randomUUID(),
-      icon: "tiktok",
-      title: "TikTok",
-      subtitle: "Follow us",
-      url: "https://tiktok.com",
-    },
-    {
-      id: crypto.randomUUID(),
-      icon: "loyalty",
-      title: "Join our Loyalty Programme",
-      subtitle: "Earn rewards on every visit",
-      url: "https://example.com",
-    },
-  ],
-};
+function Portal() {
+  const navigate = useNavigate();
+  const [profiles, setProfiles] = useState<StoredProfile[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [query, setQuery] = useState("");
+  const [newName, setNewName] = useState("");
 
-function Dashboard() {
-  const [profile, setProfile] = useState<ProfileData>(initialProfile);
+  const refresh = () => setProfiles(listProfiles());
 
-  const update = <K extends keyof ProfileData>(k: K, v: ProfileData[K]) =>
-    setProfile((p) => ({ ...p, [k]: v }));
+  useEffect(() => {
+    refresh();
+    setLoaded(true);
+  }, []);
 
-  const updateLink = (id: string, patch: Partial<LinkItem>) =>
-    setProfile((p) => ({
-      ...p,
-      links: p.links.map((l) => (l.id === id ? { ...l, ...patch } : l)),
-    }));
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const sorted = [...profiles].sort((a, b) => b.updatedAt - a.updatedAt);
+    if (!q) return sorted;
+    return sorted.filter(
+      (p) =>
+        p.profileName.toLowerCase().includes(q) ||
+        p.businessName.toLowerCase().includes(q),
+    );
+  }, [profiles, query]);
 
-  const addLink = () =>
-    setProfile((p) => ({
-      ...p,
-      links: [
-        ...p.links,
-        {
-          id: crypto.randomUUID(),
-          icon: "website",
-          title: "",
-          subtitle: "",
-          url: "",
-        },
-      ],
-    }));
+  const handleCreate = () => {
+    const name = newName.trim() || "Untitled Profile";
+    const p = createProfile(name);
+    setNewName("");
+    toast.success(`Created “${p.profileName}”`);
+    navigate({ to: "/edit/$id", params: { id: p.id } });
+  };
 
-  const removeLink = (id: string) =>
-    setProfile((p) => ({ ...p, links: p.links.filter((l) => l.id !== id) }));
-
-  const moveLink = (id: string, dir: -1 | 1) =>
-    setProfile((p) => {
-      const i = p.links.findIndex((l) => l.id === id);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= p.links.length) return p;
-      const links = [...p.links];
-      [links[i], links[j]] = [links[j], links[i]];
-      return { ...p, links };
-    });
+  const handleDelete = (p: StoredProfile) => {
+    if (!confirm(`Delete “${p.profileName}”? This cannot be undone.`)) return;
+    deleteProfile(p.id);
+    refresh();
+    toast.success("Profile deleted");
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
       <Toaster richColors position="top-right" />
 
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
+      <header className="border-b border-border bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div
-              className="grid h-9 w-9 place-items-center rounded-lg text-white"
+              className="grid h-10 w-10 place-items-center rounded-lg text-white"
               style={{ background: "var(--gradient-primary)" }}
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold leading-tight text-foreground">
+              <h1 className="text-base font-semibold leading-tight text-foreground">
                 Link Profile Studio
               </h1>
               <p className="text-xs text-muted-foreground">
-                Editing: {profile.businessName || "Untitled profile"}
+                Manage all your bio profiles
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">
-              <LayoutGrid className="mr-2 h-4 w-4" /> All Profiles
-            </Button>
-            <Button variant="outline" size="sm">
-              <Eye className="mr-2 h-4 w-4" /> Preview
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => toast.success("Profile saved")}
-              style={{ background: "var(--gradient-primary)" }}
-              className="text-white shadow-md"
-            >
-              <Save className="mr-2 h-4 w-4" /> Save Changes
-            </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1400px] gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Editor column */}
-        <div className="space-y-6">
-          {/* Branding */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-foreground">Branding</h2>
-            <p className="text-xs text-muted-foreground">
-              Images and identity displayed at the top of your profile.
-            </p>
-            <div className="mt-5 space-y-5">
-              <ImageUploadField
-                label="Header image"
-                hint="Recommended 1200×525px"
-                value={profile.headerImage}
-                onChange={(v) => update("headerImage", v)}
-              />
-              <ImageUploadField
-                label="Secondary image / logo"
-                hint="Square, 400×400px"
-                value={profile.secondaryImage}
-                onChange={(v) => update("secondaryImage", v)}
-                aspect="square"
-              />
-            </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Business name</label>
-                <Input
-                  value={profile.businessName}
-                  onChange={(e) => update("businessName", e.target.value)}
-                  placeholder="Your business"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Tagline</label>
-                <Input
-                  value={profile.businessDescription}
-                  onChange={(e) => update("businessDescription", e.target.value)}
-                  placeholder="Short description"
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Theme */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-foreground">Theme</h2>
-            <p className="text-xs text-muted-foreground">
-              Pick a color from anywhere on your screen with the eyedropper, or open the picker.
-            </p>
-            <div className="mt-5 grid gap-5 md:grid-cols-2">
-              <ColorField
-                label="Main background color"
-                value={profile.bgColor}
-                onChange={(v) => update("bgColor", v)}
-              />
-              <ColorField
-                label="Button color"
-                value={profile.buttonColor}
-                onChange={(v) => update("buttonColor", v)}
-              />
-            </div>
-          </section>
-
-          {/* Main button link */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Main Button Link</h2>
-                <p className="text-xs text-muted-foreground">
-                  The primary call-to-action displayed above your links.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive"
-                title="Remove main button"
-                onClick={() => {
-                  update("mainButtonText", "");
-                  update("mainButtonUrl", "");
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Button text</label>
-                <Input
-                  value={profile.mainButtonText}
-                  onChange={(e) => update("mainButtonText", e.target.value)}
-                  placeholder="View Menu"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Redirect URL</label>
-                <Input
-                  value={profile.mainButtonUrl}
-                  onChange={(e) => update("mainButtonUrl", e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* Links */}
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <main className="mx-auto max-w-[1200px] px-6 py-10">
+        {/* Create + search */}
+        <section
+          className="overflow-hidden rounded-2xl p-6 shadow-elegant"
+          style={{ background: "var(--gradient-primary)" }}
+        >
+          <div className="flex flex-col gap-4">
             <div>
-              <h2 className="text-base font-semibold text-foreground">Links</h2>
-              <p className="text-xs text-muted-foreground">
-                Add up to as many links as you need.
+              <h2 className="text-lg font-semibold text-white">Create a new profile</h2>
+              <p className="text-sm text-white/80">
+                Give your profile a name to get started.
               </p>
             </div>
-            <div className="mt-5 space-y-3">
-              {profile.links.map((link, i) => (
-                <LinkEditor
-                  key={link.id}
-                  link={link}
-                  index={i}
-                  total={profile.links.length}
-                  onChange={(patch) => updateLink(link.id, patch)}
-                  onRemove={() => removeLink(link.id)}
-                  onMove={(dir) => moveLink(link.id, dir)}
-                />
-              ))}
-              {profile.links.length === 0 && (
-                <p className="rounded-lg border border-dashed border-border bg-muted/30 py-8 text-center text-sm text-muted-foreground">
-                  No links yet — click “Add link” to get started.
-                </p>
-              )}
-              <Button onClick={addLink} size="sm" className="w-full">
-                <Plus className="mr-2 h-4 w-4" /> Add link
-              </Button>
-            </div>
-          </section>
-
-          {/* QR / Save */}
-          <section
-            className="overflow-hidden rounded-2xl border border-border p-6 shadow-elegant"
-            style={{ background: "var(--gradient-primary)" }}
-          >
-            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div className="flex-1 space-y-2">
-                <label className="text-sm font-medium text-white/90">QR Code design name</label>
-                <Input
-                  value={profile.profileName}
-                  onChange={(e) => update("profileName", e.target.value)}
-                  placeholder="e.g. Juices4Life — Harlesden Branch"
-                  className="h-11 border-white/20 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/50"
-                />
-                <p className="text-xs text-white/70">
-                  This name identifies your QR code design in your dashboard.
-                </p>
-              </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                placeholder="e.g. Juices4Life — Wembley Branch"
+                className="h-11 flex-1 border-white/20 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/50"
+              />
               <Button
                 size="lg"
-                onClick={() => toast.success(`Saved “${profile.profileName || "Untitled"}”`)}
-                className="h-12 min-w-[180px] bg-white px-8 text-base font-semibold text-foreground shadow-lg transition hover:bg-white/90"
+                onClick={handleCreate}
+                className="h-11 bg-white px-6 font-semibold text-foreground shadow-md transition hover:bg-white/90"
               >
-                <Save className="mr-2 h-5 w-5" /> Save Design
+                <Plus className="mr-2 h-4 w-4" /> Create profile
               </Button>
             </div>
-          </section>
+          </div>
+        </section>
+
+        {/* Profile list */}
+        <section className="mt-8">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-semibold text-foreground">
+                Your profiles
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({profiles.length})
+                </span>
+              </h2>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by profile name…"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          {!loaded ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 py-16 text-center text-sm text-muted-foreground">
+              Loading…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 py-16 text-center text-sm text-muted-foreground">
+              {profiles.length === 0
+                ? "No profiles yet. Create your first one above."
+                : "No profiles match your search."}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((p) => (
+                <ProfileCard key={p.id} profile={p} onDelete={() => handleDelete(p)} />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function ProfileCard({
+  profile,
+  onDelete,
+}: {
+  profile: StoredProfile;
+  onDelete: () => void;
+}) {
+  const slug = slugify(profile.profileName);
+  const updated = new Date(profile.updatedAt).toLocaleDateString();
+
+  return (
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:shadow-md">
+      <div
+        className="relative h-28"
+        style={{
+          background: profile.headerImage
+            ? `url(${profile.headerImage}) center/cover`
+            : profile.bgColor,
+        }}
+      >
+        {profile.secondaryImage && (
+          <div className="absolute bottom-0 left-4 h-12 w-12 translate-y-1/2 overflow-hidden rounded-full border-2 border-card bg-card">
+            <img
+              src={profile.secondaryImage}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-5 pt-7">
+        <h3 className="truncate text-base font-semibold text-foreground">
+          {profile.profileName}
+        </h3>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          {profile.businessName || "—"}
+        </p>
+        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+          <span>{profile.links.length} links</span>
+          <span>•</span>
+          <span>Updated {updated}</span>
+        </div>
+        <div className="mt-2 truncate font-mono text-[11px] text-muted-foreground">
+          /p/{slug}
         </div>
 
-
-        {/* Phone preview column */}
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          {/* Unique URL */}
-          {(() => {
-            const slug =
-              profile.profileName
-                .toLowerCase()
-                .trim()
-                .replace(/[^a-z0-9]+/g, "-")
-                .replace(/^-|-$/g, "") || "untitled";
-            const origin =
-              typeof window !== "undefined" ? window.location.origin : "https://tapandrate.co.uk";
-            const url = `${origin}/p/${slug}`;
-            return (
-              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  <Link2 className="h-3.5 w-3.5" /> Your unique profile URL
-                </div>
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
-                  <span className="flex-1 truncate font-mono text-xs text-foreground">{url}</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 shrink-0"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(url);
-                        toast.success("URL copied to clipboard");
-                      } catch {
-                        toast.error("Couldn't copy. Select and copy manually.");
-                      }
-                    }}
-                  >
-                    <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy
-                  </Button>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Smartphone className="h-3.5 w-3.5" /> Live preview
-            </div>
-            <PhonePreview profile={profile} />
-          </div>
-        </aside>
-      </main>
+        <div className="mt-4 flex items-center gap-2">
+          <Button asChild size="sm" className="flex-1">
+            <Link to="/edit/$id" params={{ id: profile.id }}>
+              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
+            </Link>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="px-2"
+            title="Open public URL"
+            onClick={() => window.open(`/p/${slug}`, "_blank")}
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="px-2 text-destructive hover:text-destructive"
+            title="Delete"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
