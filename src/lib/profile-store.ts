@@ -3,6 +3,7 @@ import type { ProfileData } from "@/lib/profile-types";
 export interface StoredProfile extends ProfileData {
   id: string;
   folderId?: string | null;
+  paused?: boolean;
   updatedAt: number;
   createdAt: number;
 }
