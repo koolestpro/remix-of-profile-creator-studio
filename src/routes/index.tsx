@@ -57,7 +57,7 @@ const initialProfile: ProfileData = {
     },
     {
       id: crypto.randomUUID(),
-      icon: "gift",
+      icon: "loyalty",
       title: "Join our Loyalty Programme",
       subtitle: "Earn rewards on every visit",
       url: "https://example.com",
@@ -84,7 +84,7 @@ function Dashboard() {
         ...p.links,
         {
           id: crypto.randomUUID(),
-          icon: "link",
+          icon: "website",
           title: "",
           subtitle: "",
           url: "",
