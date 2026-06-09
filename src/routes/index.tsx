@@ -709,7 +709,7 @@ function ProfileCard({
       </div>
 
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
         <Button asChild size="sm">
           <Link to="/edit/$id" params={{ id: profile.id }}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
