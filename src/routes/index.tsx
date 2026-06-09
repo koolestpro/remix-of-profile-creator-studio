@@ -127,10 +127,15 @@ function Portal() {
   };
 
   const handleDelete = (p: StoredProfile) => {
-    if (!confirm(`Delete “${p.profileName}”? This cannot be undone.`)) return;
-    deleteProfile(p.id);
+    setPendingDelete(p);
+  };
+
+  const confirmDeleteProfile = () => {
+    if (!pendingDelete) return;
+    deleteProfile(pendingDelete.id);
     refresh();
     toast.success("Profile deleted");
+    setPendingDelete(null);
   };
 
   const handleDuplicate = (p: StoredProfile) => {
