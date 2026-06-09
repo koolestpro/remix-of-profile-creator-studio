@@ -2,7 +2,6 @@ import { ChevronRight, Menu, Share2 } from "lucide-react";
 import { ProfileData } from "@/lib/profile-types";
 import { renderIcon } from "@/lib/icon-registry";
 import tapandrateLogo from "@/assets/tapandrate.png.asset.json";
-import { renderIcon } from "@/lib/icon-registry";
 
 export function PhonePreview({ profile }: { profile: ProfileData }) {
   return (
