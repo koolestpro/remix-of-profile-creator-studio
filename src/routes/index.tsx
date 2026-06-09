@@ -68,6 +68,24 @@ function Portal() {
     toast.success("Profile deleted");
   };
 
+  const handleDuplicate = (p: StoredProfile) => {
+    const copy = duplicateProfile(p.id);
+    if (copy) {
+      refresh();
+      toast.success(`Duplicated as “${copy.profileName}”`);
+    }
+  };
+
+  const handleCopyUrl = async (p: StoredProfile) => {
+    const url = `${window.location.origin}/p/${slugify(p.profileName)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("URL copied to clipboard");
+    } catch {
+      toast.error("Couldn't copy. Select and copy manually.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-canvas">
       <Toaster richColors position="top-right" />
