@@ -15,7 +15,10 @@ import {
   Inbox,
   MoreHorizontal,
   X,
+  Pause,
+  Play,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
@@ -42,6 +45,8 @@ import {
   listProfiles,
   createProfile,
   deleteProfile,
+  deleteProfiles,
+  setProfilesPaused,
   duplicateProfile,
   slugify,
   listFolders,
@@ -80,6 +85,8 @@ function Portal() {
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
   const [pendingDelete, setPendingDelete] = useState<StoredProfile | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
 
   const refresh = () => {
     setProfiles(listProfiles());
@@ -188,6 +195,63 @@ function Portal() {
         : folders.find((f) => f.id === folderId)?.name ?? "folder";
     toast.success(`Moved to ${folderName}`);
   };
+
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const allVisibleSelected =
+    filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const someVisibleSelected =
+    !allVisibleSelected && filtered.some((p) => selected.has(p.id));
+
+  const toggleSelectAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        filtered.forEach((p) => next.delete(p.id));
+      } else {
+        filtered.forEach((p) => next.add(p.id));
+      }
+      return next;
+    });
+  };
+
+  const selectedIds = useMemo(
+    () => filtered.filter((p) => selected.has(p.id)).map((p) => p.id),
+    [filtered, selected],
+  );
+
+  const allSelectedPaused =
+    selectedIds.length > 0 &&
+    selectedIds.every((id) => profiles.find((p) => p.id === id)?.paused);
+
+  const handleBulkPauseToggle = () => {
+    const newPaused = !allSelectedPaused;
+    setProfilesPaused(selectedIds, newPaused);
+    refresh();
+    toast.success(
+      `${selectedIds.length} profile${selectedIds.length === 1 ? "" : "s"} ${newPaused ? "paused" : "resumed"}`,
+    );
+  };
+
+  const confirmBulkDelete = () => {
+    const count = selectedIds.length;
+    deleteProfiles(selectedIds);
+    clearSelection();
+    refresh();
+    toast.success(`Deleted ${count} profile${count === 1 ? "" : "s"}`);
+    setPendingBulkDelete(false);
+  };
+
+
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -356,11 +420,68 @@ function Portal() {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                    <Checkbox
+                      checked={
+                        allVisibleSelected
+                          ? true
+                          : someVisibleSelected
+                            ? "indeterminate"
+                            : false
+                      }
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all profiles"
+                    />
+                    Select all
+                    {selectedIds.length > 0 && (
+                      <span className="text-xs font-normal text-muted-foreground">
+                        ({selectedIds.length} selected)
+                      </span>
+                    )}
+                  </label>
+                  {selectedIds.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBulkPauseToggle}
+                      >
+                        {allSelectedPaused ? (
+                          <>
+                            <Play className="mr-1.5 h-3.5 w-3.5" /> Resume
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="mr-1.5 h-3.5 w-3.5" /> Pause
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setPendingBulkDelete(true)}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={clearSelection}
+                        title="Clear selection"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {filtered.map((p) => (
                   <ProfileCard
                     key={p.id}
                     profile={p}
                     folders={folders}
+                    selected={selected.has(p.id)}
+                    onToggleSelect={() => toggleSelected(p.id)}
                     onDelete={() => handleDelete(p)}
                     onDuplicate={() => handleDuplicate(p)}
                     onCopyUrl={() => handleCopyUrl(p)}
@@ -428,6 +549,33 @@ function Portal() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={pendingBulkDelete}
+        onOpenChange={(o) => !o && setPendingBulkDelete(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">
+                {selectedIds.length} profile{selectedIds.length === 1 ? "" : "s"}
+              </span>
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -486,6 +634,8 @@ function FolderItem({
 function ProfileCard({
   profile,
   folders,
+  selected,
+  onToggleSelect,
   onDelete,
   onDuplicate,
   onCopyUrl,
@@ -493,6 +643,8 @@ function ProfileCard({
 }: {
   profile: StoredProfile;
   folders: Folder[];
+  selected: boolean;
+  onToggleSelect: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onCopyUrl: () => void;
@@ -506,8 +658,16 @@ function ProfileCard({
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(qrTarget)}`;
 
   return (
-    <div className="group flex items-center gap-4 overflow-hidden rounded-xl border border-border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md">
-      <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1">
+    <div
+      className={`group flex items-center gap-4 overflow-hidden rounded-xl border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md ${
+        selected ? "border-primary ring-1 ring-primary/40" : "border-border"
+      }`}
+    >
+      <div
+        className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 ${
+          profile.paused ? "opacity-40 grayscale" : ""
+        }`}
+      >
         <img
           src={qrSrc}
           alt={`QR code for ${profile.profileName}`}
@@ -523,6 +683,11 @@ function ProfileCard({
           <span className="truncate text-xs text-muted-foreground">
             · {profile.businessName || "—"}
           </span>
+          {profile.paused && (
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+              Paused
+            </span>
+          )}
         </div>
         <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
           <span>Updated {updated}</span>
@@ -604,6 +769,17 @@ function ProfileCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <label
+          className="ml-1 flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+          title="Select profile"
+        >
+          <Checkbox
+            checked={selected}
+            onCheckedChange={onToggleSelect}
+            aria-label={`Select ${profile.profileName}`}
+          />
+          Select
+        </label>
       </div>
     </div>
   );

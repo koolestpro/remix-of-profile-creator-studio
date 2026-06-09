@@ -3,6 +3,7 @@ import type { ProfileData } from "@/lib/profile-types";
 export interface StoredProfile extends ProfileData {
   id: string;
   folderId?: string | null;
+  paused?: boolean;
   updatedAt: number;
   createdAt: number;
 }
@@ -190,6 +191,21 @@ export function saveProfile(id: string, data: ProfileData): StoredProfile | unde
 export function deleteProfile(id: string) {
   const all = listProfiles().filter((p) => p.id !== id);
   writeAll(all);
+}
+
+export function deleteProfiles(ids: string[]) {
+  const set = new Set(ids);
+  writeAll(listProfiles().filter((p) => !set.has(p.id)));
+}
+
+export function setProfilesPaused(ids: string[], paused: boolean) {
+  const set = new Set(ids);
+  const now = Date.now();
+  writeAll(
+    listProfiles().map((p) =>
+      set.has(p.id) ? { ...p, paused, updatedAt: now } : p,
+    ),
+  );
 }
 
 export function duplicateProfile(id: string): StoredProfile | undefined {
