@@ -278,7 +278,7 @@ function Portal() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1400px] gap-6 px-6 py-10 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <main className="mx-auto grid max-w-[1400px] gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Folders sidebar */}
         <aside className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
