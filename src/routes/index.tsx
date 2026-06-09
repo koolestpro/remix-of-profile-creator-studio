@@ -146,7 +146,7 @@ function Dashboard() {
             <p className="text-xs text-muted-foreground">
               Images and identity displayed at the top of your profile.
             </p>
-            <div className="mt-5 grid gap-5 md:grid-cols-[1fr_auto]">
+            <div className="mt-5 space-y-5">
               <ImageUploadField
                 label="Header image"
                 hint="Recommended 1200×525px"
