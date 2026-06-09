@@ -196,6 +196,63 @@ function Portal() {
     toast.success(`Moved to ${folderName}`);
   };
 
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const allVisibleSelected =
+    filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const someVisibleSelected =
+    !allVisibleSelected && filtered.some((p) => selected.has(p.id));
+
+  const toggleSelectAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        filtered.forEach((p) => next.delete(p.id));
+      } else {
+        filtered.forEach((p) => next.add(p.id));
+      }
+      return next;
+    });
+  };
+
+  const selectedIds = useMemo(
+    () => filtered.filter((p) => selected.has(p.id)).map((p) => p.id),
+    [filtered, selected],
+  );
+
+  const allSelectedPaused =
+    selectedIds.length > 0 &&
+    selectedIds.every((id) => profiles.find((p) => p.id === id)?.paused);
+
+  const handleBulkPauseToggle = () => {
+    const newPaused = !allSelectedPaused;
+    setProfilesPaused(selectedIds, newPaused);
+    refresh();
+    toast.success(
+      `${selectedIds.length} profile${selectedIds.length === 1 ? "" : "s"} ${newPaused ? "paused" : "resumed"}`,
+    );
+  };
+
+  const confirmBulkDelete = () => {
+    const count = selectedIds.length;
+    deleteProfiles(selectedIds);
+    clearSelection();
+    refresh();
+    toast.success(`Deleted ${count} profile${count === 1 ? "" : "s"}`);
+    setPendingBulkDelete(false);
+  };
+
+
+
   return (
     <div className="min-h-screen bg-canvas">
       <Toaster richColors position="top-right" />
