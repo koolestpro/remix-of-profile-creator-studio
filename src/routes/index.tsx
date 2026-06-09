@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Sparkles, Pencil, Trash2, ExternalLink, LayoutGrid } from "lucide-react";
+import { Plus, Search, Sparkles, Pencil, Trash2, ExternalLink, LayoutGrid, Copy, CopyPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,6 +9,7 @@ import {
   listProfiles,
   createProfile,
   deleteProfile,
+  duplicateProfile,
   slugify,
   type StoredProfile,
 } from "@/lib/profile-store";
@@ -65,6 +66,24 @@ function Portal() {
     deleteProfile(p.id);
     refresh();
     toast.success("Profile deleted");
+  };
+
+  const handleDuplicate = (p: StoredProfile) => {
+    const copy = duplicateProfile(p.id);
+    if (copy) {
+      refresh();
+      toast.success(`Duplicated as “${copy.profileName}”`);
+    }
+  };
+
+  const handleCopyUrl = async (p: StoredProfile) => {
+    const url = `${window.location.origin}/p/${slugify(p.profileName)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("URL copied to clipboard");
+    } catch {
+      toast.error("Couldn't copy. Select and copy manually.");
+    }
   };
 
   return (
@@ -160,7 +179,13 @@ function Portal() {
           ) : (
             <div className="flex flex-col gap-3">
               {filtered.map((p) => (
-                <ProfileCard key={p.id} profile={p} onDelete={() => handleDelete(p)} />
+                <ProfileCard
+                  key={p.id}
+                  profile={p}
+                  onDelete={() => handleDelete(p)}
+                  onDuplicate={() => handleDuplicate(p)}
+                  onCopyUrl={() => handleCopyUrl(p)}
+                />
               ))}
             </div>
           )}
@@ -173,9 +198,13 @@ function Portal() {
 function ProfileCard({
   profile,
   onDelete,
+  onDuplicate,
+  onCopyUrl,
 }: {
   profile: StoredProfile;
   onDelete: () => void;
+  onDuplicate: () => void;
+  onCopyUrl: () => void;
 }) {
   const slug = slugify(profile.profileName);
   const updated = new Date(profile.updatedAt).toLocaleDateString();
@@ -220,6 +249,24 @@ function ProfileCard({
           <Link to="/edit/$id" params={{ id: profile.id }}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
           </Link>
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2"
+          title="Copy public URL"
+          onClick={onCopyUrl}
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2"
+          title="Duplicate profile"
+          onClick={onDuplicate}
+        >
+          <CopyPlus className="h-3.5 w-3.5" />
         </Button>
         <Button
           size="sm"

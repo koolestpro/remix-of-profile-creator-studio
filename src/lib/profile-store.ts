@@ -113,6 +113,24 @@ export function deleteProfile(id: string) {
   writeAll(all);
 }
 
+export function duplicateProfile(id: string): StoredProfile | undefined {
+  const all = listProfiles();
+  const src = all.find((p) => p.id === id);
+  if (!src) return undefined;
+  const now = Date.now();
+  const copy: StoredProfile = {
+    ...src,
+    id: crypto.randomUUID(),
+    profileName: `${src.profileName} (Copy)`,
+    links: src.links.map((l) => ({ ...l, id: crypto.randomUUID() })),
+    createdAt: now,
+    updatedAt: now,
+  };
+  all.push(copy);
+  writeAll(all);
+  return copy;
+}
+
 export function renameProfile(id: string, name: string) {
   const all = listProfiles();
   const idx = all.findIndex((p) => p.id === id);
