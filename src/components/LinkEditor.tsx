@@ -35,9 +35,10 @@ export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: P
 
   return (
     <div
-      className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 pl-5 shadow-sm transition hover:shadow-md"
+      className="group relative overflow-hidden rounded-xl border-2 bg-card p-4 pl-5 shadow-sm transition hover:shadow-md"
       style={{
-        borderLeft: `4px solid ${accent}`,
+        borderColor: accent,
+        borderLeftWidth: "6px",
         backgroundImage: `linear-gradient(90deg, ${accent}10, transparent 40%)`,
       }}
     >
