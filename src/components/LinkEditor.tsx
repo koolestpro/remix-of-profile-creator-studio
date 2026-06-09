@@ -1,4 +1,4 @@
-import { GripVertical, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Trash2, Upload } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,13 @@ import type { LinkItem, IconKey } from "@/lib/profile-types";
 interface Props {
   link: LinkItem;
   index: number;
+  total: number;
   onChange: (patch: Partial<LinkItem>) => void;
   onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
 }
 
-export function LinkEditor({ link, index, onChange, onRemove }: Props) {
+export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleIconUpload = (file?: File) => {
@@ -36,10 +38,33 @@ export function LinkEditor({ link, index, onChange, onRemove }: Props) {
           <GripVertical className="h-4 w-4" />
           Link #{index + 1}
         </div>
-        <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 text-destructive">
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onMove(-1)}
+            disabled={index === 0}
+            className="h-8 w-8"
+            title="Move up"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onMove(1)}
+            disabled={index === total - 1}
+            className="h-8 w-8"
+            title="Move down"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
 
       <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
         {/* Icon block */}
