@@ -6,7 +6,7 @@ export interface StoredProfile extends ProfileData {
   createdAt: number;
 }
 
-const KEY = "lps:profiles";
+const KEY = "lps:profiles:v2";
 
 export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
   return {
@@ -25,26 +25,41 @@ export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
 
 function seed(): StoredProfile[] {
   const now = Date.now();
-  const base = createDefaultProfile("Juices4Life Profile");
-  return [
-    {
-      ...base,
-      id: crypto.randomUUID(),
-      profileName: "Juices4Life Profile",
-      businessName: "Juices4Life Harlesden",
-      businessDescription: "Fuel your Life",
-      mainButtonText: "View Menu",
-      mainButtonUrl: "https://example.com/menu",
-      links: [
-        { id: crypto.randomUUID(), icon: "google", title: "Leave us a Google review", subtitle: "Share your experience", url: "https://google.com" },
-        { id: crypto.randomUUID(), icon: "instagram", title: "Instagram", subtitle: "Follow us", url: "https://instagram.com" },
-        { id: crypto.randomUUID(), icon: "tiktok", title: "TikTok", subtitle: "Follow us", url: "https://tiktok.com" },
-        { id: crypto.randomUUID(), icon: "loyalty", title: "Join our Loyalty Programme", subtitle: "Earn rewards on every visit", url: "https://example.com" },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    },
+  const samples: Array<{ name: string; business: string; tagline: string; bg: string; btn: string }> = [
+    { name: "Juices4Life Profile", business: "Juices4Life Harlesden", tagline: "Fuel your Life", bg: "#f4ead5", btn: "#111111" },
+    { name: "Bloom Coffee — Soho", business: "Bloom Coffee", tagline: "Slow brews, fast smiles", bg: "#fde8d4", btn: "#3b2417" },
+    { name: "Pixel Barbers", business: "Pixel Barbers Camden", tagline: "Sharp fades since 2014", bg: "#1f2937", btn: "#fbbf24" },
+    { name: "Nori Sushi Bar", business: "Nori Sushi", tagline: "Fresh from the sea", bg: "#e0f2fe", btn: "#0c4a6e" },
+    { name: "GreenLeaf Yoga", business: "GreenLeaf Studio", tagline: "Breathe. Move. Glow.", bg: "#dcfce7", btn: "#166534" },
+    { name: "Vinyl & Vines", business: "Vinyl & Vines Wine Bar", tagline: "Records, wine, repeat", bg: "#fce7f3", btn: "#831843" },
+    { name: "Forge Fitness", business: "Forge Strength Co.", tagline: "Train hard, live strong", bg: "#0f172a", btn: "#ef4444" },
+    { name: "Petal & Stem", business: "Petal & Stem Florist", tagline: "Hand-tied with love", bg: "#fef3c7", btn: "#b45309" },
+    { name: "Crust Pizza Co.", business: "Crust Pizza — Shoreditch", tagline: "Wood-fired, always", bg: "#fee2e2", btn: "#991b1b" },
+    { name: "Stride Sneakers", business: "Stride", tagline: "Step into something new", bg: "#ede9fe", btn: "#5b21b6" },
   ];
+  const iconPool: Array<"google" | "instagram" | "tiktok" | "facebook" | "whatsapp" | "website" | "loyalty"> = [
+    "google", "instagram", "tiktok", "facebook", "whatsapp", "website", "loyalty",
+  ];
+  return samples.map((s, idx) => ({
+    ...createDefaultProfile(s.name),
+    id: crypto.randomUUID(),
+    profileName: s.name,
+    businessName: s.business,
+    businessDescription: s.tagline,
+    bgColor: s.bg,
+    buttonColor: s.btn,
+    mainButtonText: "View Menu",
+    mainButtonUrl: "https://example.com",
+    links: Array.from({ length: 3 + (idx % 3) }, (_, i) => ({
+      id: crypto.randomUUID(),
+      icon: iconPool[(idx + i) % iconPool.length],
+      title: `Link ${i + 1}`,
+      subtitle: "Tap to open",
+      url: "https://example.com",
+    })),
+    createdAt: now - idx * 86_400_000,
+    updatedAt: now - idx * 3_600_000,
+  }));
 }
 
 export function listProfiles(): StoredProfile[] {
