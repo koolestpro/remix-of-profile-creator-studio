@@ -258,7 +258,7 @@ function Portal() {
       <Toaster richColors position="top-right" />
 
       <header className="border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div
               className="grid h-10 w-10 place-items-center rounded-lg text-white"
@@ -278,7 +278,7 @@ function Portal() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1400px] gap-6 px-6 py-10 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <main className="mx-auto grid max-w-[1400px] gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Folders sidebar */}
         <aside className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -659,54 +659,57 @@ function ProfileCard({
 
   return (
     <div
-      className={`group flex items-center gap-4 overflow-hidden rounded-xl border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md ${
+      className={`group flex flex-col gap-3 overflow-hidden rounded-xl border bg-card p-3 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4 sm:pr-4 ${
         selected ? "border-primary ring-1 ring-primary/40" : "border-border"
       }`}
     >
-      <div
-        className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 ${
-          profile.paused ? "opacity-40 grayscale" : ""
-        }`}
-      >
-        <img
-          src={qrSrc}
-          alt={`QR code for ${profile.profileName}`}
-          className="h-full w-full object-contain"
-        />
-      </div>
+      <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+        <div
+          className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 ${
+            profile.paused ? "opacity-40 grayscale" : ""
+          }`}
+        >
+          <img
+            src={qrSrc}
+            alt={`QR code for ${profile.profileName}`}
+            className="h-full w-full object-contain"
+          />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <h3 className="truncate text-sm font-semibold text-foreground">
-            {profile.profileName}
-          </h3>
-          <span className="truncate text-xs text-muted-foreground">
-            · {profile.businessName || "—"}
-          </span>
-          {profile.paused && (
-            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
-              Paused
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {profile.profileName}
+            </h3>
+            <span className="truncate text-xs text-muted-foreground">
+              · {profile.businessName || "—"}
             </span>
-          )}
-        </div>
-        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-          <span>Updated {updated}</span>
-          {currentFolder && (
-            <>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: currentFolder.color }}
-                />
-                {currentFolder.name}
+            {profile.paused && (
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                Paused
               </span>
-            </>
-          )}
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span>Updated {updated}</span>
+            {currentFolder && (
+              <>
+                <span className="hidden sm:inline">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ background: currentFolder.color }}
+                  />
+                  {currentFolder.name}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+
+      <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
         <Button asChild size="sm">
           <Link to="/edit/$id" params={{ id: profile.id }}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
