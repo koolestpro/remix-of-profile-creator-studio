@@ -420,11 +420,68 @@ function Portal() {
               </div>
             ) : (
               <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
+                    <Checkbox
+                      checked={
+                        allVisibleSelected
+                          ? true
+                          : someVisibleSelected
+                            ? "indeterminate"
+                            : false
+                      }
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all profiles"
+                    />
+                    Select all
+                    {selectedIds.length > 0 && (
+                      <span className="text-xs font-normal text-muted-foreground">
+                        ({selectedIds.length} selected)
+                      </span>
+                    )}
+                  </label>
+                  {selectedIds.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleBulkPauseToggle}
+                      >
+                        {allSelectedPaused ? (
+                          <>
+                            <Play className="mr-1.5 h-3.5 w-3.5" /> Resume
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="mr-1.5 h-3.5 w-3.5" /> Pause
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setPendingBulkDelete(true)}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={clearSelection}
+                        title="Clear selection"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {filtered.map((p) => (
                   <ProfileCard
                     key={p.id}
                     profile={p}
                     folders={folders}
+                    selected={selected.has(p.id)}
+                    onToggleSelect={() => toggleSelected(p.id)}
                     onDelete={() => handleDelete(p)}
                     onDuplicate={() => handleDuplicate(p)}
                     onCopyUrl={() => handleCopyUrl(p)}
