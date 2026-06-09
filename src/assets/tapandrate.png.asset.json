@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "722a15af-2f49-4e1e-ac30-975508de81f9",
-  "project_id": "9251b1f5-315d-4653-872a-7f8e2c7745c6",
-  "url": "/__l5e/assets-v1/722a15af-2f49-4e1e-ac30-975508de81f9/tapandrate.png",
-  "r2_key": "a/v1/9251b1f5-315d-4653-872a-7f8e2c7745c6/722a15af-2f49-4e1e-ac30-975508de81f9/tapandrate.png",
-  "original_filename": "tapandrate.png",
-  "size": 771698,
   "content_type": "image/png",
-  "created_at": "2026-06-09T17:22:11Z"
+  "created_at": "2026-06-09T17:22:11Z",
+  "original_filename": "tapandrate.png",
+  "project_id": "bf6339ca-32b1-464f-bb12-33e92519b449",
+  "r2_key": "a/v1/bf6339ca-32b1-464f-bb12-33e92519b449/722a15af-2f49-4e1e-ac30-975508de81f9/tapandrate.png",
+  "size": 771698,
+  "url": "/__l5e/assets-v1/722a15af-2f49-4e1e-ac30-975508de81f9/tapandrate.png",
+  "version": 1
 }
