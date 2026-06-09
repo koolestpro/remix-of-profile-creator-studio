@@ -78,6 +78,8 @@ function Portal() {
   const [newName, setNewName] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
+  const [pendingDelete, setPendingDelete] = useState<StoredProfile | null>(null);
+  const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
 
   const refresh = () => {
     setProfiles(listProfiles());
