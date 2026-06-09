@@ -11,6 +11,7 @@ export interface LinkItem {
 }
 
 export interface ProfileData {
+  profileName: string;
   headerImage?: string;
   secondaryImage?: string;
   businessName: string;
