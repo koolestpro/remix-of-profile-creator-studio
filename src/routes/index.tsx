@@ -33,6 +33,8 @@ const initialProfile: ProfileData = {
   businessDescription: "Fuel your Life",
   bgColor: "#f4ead5",
   buttonColor: "#111111",
+  mainButtonText: "View Menu",
+  mainButtonUrl: "https://example.com/menu",
   links: [
     {
       id: crypto.randomUUID(),
