@@ -15,7 +15,10 @@ import {
   Inbox,
   MoreHorizontal,
   X,
+  Pause,
+  Play,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
