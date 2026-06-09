@@ -254,6 +254,24 @@ function ProfileCard({
           size="sm"
           variant="outline"
           className="px-2"
+          title="Copy public URL"
+          onClick={onCopyUrl}
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2"
+          title="Duplicate profile"
+          onClick={onDuplicate}
+        >
+          <CopyPlus className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2"
           title="Open public URL"
           onClick={() => window.open(`/p/${slug}`, "_blank")}
         >
