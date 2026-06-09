@@ -29,6 +29,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   listProfiles,
   createProfile,
   deleteProfile,
@@ -68,6 +78,8 @@ function Portal() {
   const [newName, setNewName] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
+  const [pendingDelete, setPendingDelete] = useState<StoredProfile | null>(null);
+  const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
 
   const refresh = () => {
     setProfiles(listProfiles());
@@ -115,10 +127,15 @@ function Portal() {
   };
 
   const handleDelete = (p: StoredProfile) => {
-    if (!confirm(`Delete “${p.profileName}”? This cannot be undone.`)) return;
-    deleteProfile(p.id);
+    setPendingDelete(p);
+  };
+
+  const confirmDeleteProfile = () => {
+    if (!pendingDelete) return;
+    deleteProfile(pendingDelete.id);
     refresh();
     toast.success("Profile deleted");
+    setPendingDelete(null);
   };
 
   const handleDuplicate = (p: StoredProfile) => {
@@ -150,16 +167,16 @@ function Portal() {
   };
 
   const handleDeleteFolder = (f: Folder) => {
-    if (
-      !confirm(
-        `Delete folder “${f.name}”? Profiles inside will move to Uncategorized.`,
-      )
-    )
-      return;
-    deleteFolder(f.id);
-    if (activeFolder === f.id) setActiveFolder(ALL);
+    setPendingDeleteFolder(f);
+  };
+
+  const confirmDeleteFolder = () => {
+    if (!pendingDeleteFolder) return;
+    deleteFolder(pendingDeleteFolder.id);
+    if (activeFolder === pendingDeleteFolder.id) setActiveFolder(ALL);
     refresh();
     toast.success("Folder deleted");
+    setPendingDeleteFolder(null);
   };
 
   const handleMoveToFolder = (profileId: string, folderId: string | null) => {
@@ -357,6 +374,60 @@ function Portal() {
           </section>
         </div>
       </main>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">
+                “{pendingDelete?.profileName}”
+              </span>
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProfile}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingDeleteFolder}
+        onOpenChange={(o) => !o && setPendingDeleteFolder(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete folder{" "}
+              <span className="font-medium text-foreground">
+                “{pendingDeleteFolder?.name}”
+              </span>
+              ? Profiles inside will move to Uncategorized.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteFolder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
