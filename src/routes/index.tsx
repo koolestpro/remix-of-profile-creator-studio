@@ -659,7 +659,7 @@ function ProfileCard({
 
   return (
     <div
-      className={`group flex items-center gap-4 overflow-hidden rounded-xl border bg-card p-3 pr-4 shadow-sm transition hover:shadow-md ${
+      className={`group flex flex-col gap-3 overflow-hidden rounded-xl border bg-card p-3 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4 sm:pr-4 ${
         selected ? "border-primary ring-1 ring-primary/40" : "border-border"
       }`}
     >
