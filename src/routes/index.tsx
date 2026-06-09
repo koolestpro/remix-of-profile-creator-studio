@@ -33,6 +33,8 @@ const initialProfile: ProfileData = {
   businessDescription: "Fuel your Life",
   bgColor: "#f4ead5",
   buttonColor: "#111111",
+  mainButtonText: "View Menu",
+  mainButtonUrl: "https://example.com/menu",
   links: [
     {
       id: crypto.randomUUID(),
@@ -217,6 +219,32 @@ function Dashboard() {
                 value={profile.buttonColor}
                 onChange={(v) => update("buttonColor", v)}
               />
+            </div>
+          </section>
+
+          {/* Main button link */}
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-foreground">Main Button Link</h2>
+            <p className="text-xs text-muted-foreground">
+              The primary call-to-action displayed above your links.
+            </p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Button text</label>
+                <Input
+                  value={profile.mainButtonText}
+                  onChange={(e) => update("mainButtonText", e.target.value)}
+                  placeholder="View Menu"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Redirect URL</label>
+                <Input
+                  value={profile.mainButtonUrl}
+                  onChange={(e) => update("mainButtonUrl", e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
             </div>
           </section>
 

@@ -17,5 +17,7 @@ export interface ProfileData {
   businessDescription: string;
   bgColor: string;
   buttonColor: string;
+  mainButtonText: string;
+  mainButtonUrl: string;
   links: LinkItem[];
 }

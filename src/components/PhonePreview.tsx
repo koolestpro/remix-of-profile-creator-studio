@@ -51,8 +51,19 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
               {profile.businessDescription || "Business description"}
             </p>
 
+            {/* Main button */}
+            {profile.mainButtonText && (
+              <button
+                className="mt-5 w-full rounded-full py-3 text-sm font-semibold text-white shadow-md"
+                style={{ backgroundColor: profile.buttonColor }}
+              >
+                {profile.mainButtonText}
+              </button>
+            )}
+
             {/* Links */}
-            <div className="mt-5 w-full space-y-2.5">
+            <div className="mt-3 w-full space-y-2.5">
+
               {profile.links.map((l) => (
                 <div
                   key={l.id}
