@@ -267,16 +267,11 @@ function Dashboard() {
 
           {/* Links */}
           <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Links</h2>
-                <p className="text-xs text-muted-foreground">
-                  Add up to as many links as you need. Drag to reorder (coming soon).
-                </p>
-              </div>
-              <Button onClick={addLink} size="sm">
-                <Plus className="mr-2 h-4 w-4" /> Add link
-              </Button>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Links</h2>
+              <p className="text-xs text-muted-foreground">
+                Add up to as many links as you need. Drag to reorder (coming soon).
+              </p>
             </div>
             <div className="mt-5 space-y-3">
               {profile.links.map((link, i) => (
@@ -295,6 +290,9 @@ function Dashboard() {
                   No links yet — click “Add link” to get started.
                 </p>
               )}
+              <Button onClick={addLink} size="sm" className="w-full">
+                <Plus className="mr-2 h-4 w-4" /> Add link
+              </Button>
             </div>
           </section>
 
