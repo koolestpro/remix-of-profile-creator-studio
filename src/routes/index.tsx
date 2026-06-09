@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles } from "lucide-react";
+import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -224,10 +224,26 @@ function Dashboard() {
 
           {/* Main button link */}
           <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-foreground">Main Button Link</h2>
-            <p className="text-xs text-muted-foreground">
-              The primary call-to-action displayed above your links.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Main Button Link</h2>
+                <p className="text-xs text-muted-foreground">
+                  The primary call-to-action displayed above your links.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive"
+                title="Remove main button"
+                onClick={() => {
+                  update("mainButtonText", "");
+                  update("mainButtonUrl", "");
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Button text</label>
