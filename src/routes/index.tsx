@@ -742,6 +742,17 @@ function ProfileCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <label
+          className="ml-1 flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+          title="Select profile"
+        >
+          <Checkbox
+            checked={selected}
+            onCheckedChange={onToggleSelect}
+            aria-label={`Select ${profile.profileName}`}
+          />
+          Select
+        </label>
       </div>
     </div>
   );
