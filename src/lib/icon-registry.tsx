@@ -1,3 +1,4 @@
+import { Link2 } from "lucide-react";
 import {
   GoogleIcon,
   InstagramIcon,
@@ -23,7 +24,12 @@ export type IconKey =
   | "appstore"
   | "googleplay"
   | "loyalty"
-  | "whatsapp";
+  | "whatsapp"
+  | "custom";
+
+const CustomIcon = ({ className }: { className?: string }) => (
+  <Link2 className={className} />
+);
 
 const map: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   google: GoogleIcon,
@@ -37,6 +43,7 @@ const map: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   googleplay: GooglePlayIcon,
   loyalty: LoyaltyIcon,
   whatsapp: WhatsAppIcon,
+  custom: CustomIcon,
 };
 
 export const ICON_OPTIONS: { key: IconKey; label: string }[] = [
@@ -51,6 +58,7 @@ export const ICON_OPTIONS: { key: IconKey; label: string }[] = [
   { key: "googleplay", label: "Google Play" },
   { key: "loyalty", label: "Loyalty Programme" },
   { key: "whatsapp", label: "WhatsApp" },
+  { key: "custom", label: "Custom" },
 ];
 
 export function renderIcon(key: IconKey, className?: string) {
