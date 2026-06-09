@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Upload, X } from "lucide-react";
+import { Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -20,7 +20,20 @@ export function ImageUploadField({ label, hint, value, onChange, aspect = "wide"
   };
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground">{label}</label>
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-foreground">{label}</label>
+        {value && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onChange(undefined)}
+            className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+          </Button>
+        )}
+      </div>
       <div
         onClick={() => ref.current?.click()}
         className={`relative cursor-pointer overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/30 transition hover:border-primary hover:bg-muted/50 ${
@@ -35,7 +48,8 @@ export function ImageUploadField({ label, hint, value, onChange, aspect = "wide"
                 e.stopPropagation();
                 onChange(undefined);
               }}
-              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-background/90 text-foreground shadow"
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-background/90 text-destructive shadow"
+              title="Delete image"
             >
               <X className="h-3.5 w-3.5" />
             </button>
