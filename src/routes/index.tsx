@@ -179,7 +179,13 @@ function Portal() {
           ) : (
             <div className="flex flex-col gap-3">
               {filtered.map((p) => (
-                <ProfileCard key={p.id} profile={p} onDelete={() => handleDelete(p)} />
+                <ProfileCard
+                  key={p.id}
+                  profile={p}
+                  onDelete={() => handleDelete(p)}
+                  onDuplicate={() => handleDuplicate(p)}
+                  onCopyUrl={() => handleCopyUrl(p)}
+                />
               ))}
             </div>
           )}
