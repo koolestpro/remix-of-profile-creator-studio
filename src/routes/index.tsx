@@ -198,9 +198,13 @@ function Portal() {
 function ProfileCard({
   profile,
   onDelete,
+  onDuplicate,
+  onCopyUrl,
 }: {
   profile: StoredProfile;
   onDelete: () => void;
+  onDuplicate: () => void;
+  onCopyUrl: () => void;
 }) {
   const slug = slugify(profile.profileName);
   const updated = new Date(profile.updatedAt).toLocaleDateString();
