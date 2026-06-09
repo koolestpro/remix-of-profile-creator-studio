@@ -167,16 +167,16 @@ function Portal() {
   };
 
   const handleDeleteFolder = (f: Folder) => {
-    if (
-      !confirm(
-        `Delete folder “${f.name}”? Profiles inside will move to Uncategorized.`,
-      )
-    )
-      return;
-    deleteFolder(f.id);
-    if (activeFolder === f.id) setActiveFolder(ALL);
+    setPendingDeleteFolder(f);
+  };
+
+  const confirmDeleteFolder = () => {
+    if (!pendingDeleteFolder) return;
+    deleteFolder(pendingDeleteFolder.id);
+    if (activeFolder === pendingDeleteFolder.id) setActiveFolder(ALL);
     refresh();
     toast.success("Folder deleted");
+    setPendingDeleteFolder(null);
   };
 
   const handleMoveToFolder = (profileId: string, folderId: string | null) => {
