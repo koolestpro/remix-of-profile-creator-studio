@@ -31,8 +31,16 @@ export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: P
     reader.readAsDataURL(file);
   };
 
+  const accent = ICON_COLORS[link.icon] ?? "#6B7280";
+
   return (
-    <div className="group rounded-xl border border-border bg-card p-4 shadow-sm transition hover:shadow-md">
+    <div
+      className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 pl-5 shadow-sm transition hover:shadow-md"
+      style={{
+        borderLeft: `4px solid ${accent}`,
+        backgroundImage: `linear-gradient(90deg, ${accent}10, transparent 40%)`,
+      }}
+    >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <GripVertical className="h-4 w-4" />
