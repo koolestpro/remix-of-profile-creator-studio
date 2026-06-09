@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { ColorField } from "@/components/ColorField";
@@ -191,15 +191,6 @@ function Dashboard() {
                   placeholder="Short description"
                 />
               </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              <label className="text-sm font-medium text-foreground">Full description</label>
-              <Textarea
-                value={profile.businessDescription}
-                onChange={(e) => update("businessDescription", e.target.value)}
-                placeholder="Tell visitors more about your business"
-                rows={2}
-              />
             </div>
           </section>
 
