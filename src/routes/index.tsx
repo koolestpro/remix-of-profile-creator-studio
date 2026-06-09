@@ -27,6 +27,7 @@ export const Route = createFileRoute("/")({
 });
 
 const initialProfile: ProfileData = {
+  profileName: "Juices4Life Profile",
   headerImage: undefined,
   secondaryImage: undefined,
   businessName: "Juices4Life Harlesden",
@@ -296,7 +297,36 @@ function Dashboard() {
               )}
             </div>
           </section>
+
+          {/* QR / Save */}
+          <section
+            className="overflow-hidden rounded-2xl border border-border p-6 shadow-elegant"
+            style={{ background: "var(--gradient-primary)" }}
+          >
+            <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+              <div className="flex-1 space-y-2">
+                <label className="text-sm font-medium text-white/90">QR Code design name</label>
+                <Input
+                  value={profile.profileName}
+                  onChange={(e) => update("profileName", e.target.value)}
+                  placeholder="e.g. Juices4Life — Harlesden Branch"
+                  className="h-11 border-white/20 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/50"
+                />
+                <p className="text-xs text-white/70">
+                  This name identifies your QR code design in your dashboard.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={() => toast.success(`Saved “${profile.profileName || "Untitled"}”`)}
+                className="h-12 min-w-[180px] bg-white px-8 text-base font-semibold text-foreground shadow-lg transition hover:bg-white/90"
+              >
+                <Save className="mr-2 h-5 w-5" /> Save Design
+              </Button>
+            </div>
+          </section>
         </div>
+
 
         {/* Phone preview column */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
