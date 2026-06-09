@@ -95,6 +95,16 @@ function Dashboard() {
   const removeLink = (id: string) =>
     setProfile((p) => ({ ...p, links: p.links.filter((l) => l.id !== id) }));
 
+  const moveLink = (id: string, dir: -1 | 1) =>
+    setProfile((p) => {
+      const i = p.links.findIndex((l) => l.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= p.links.length) return p;
+      const links = [...p.links];
+      [links[i], links[j]] = [links[j], links[i]];
+      return { ...p, links };
+    });
+
   return (
     <div className="min-h-screen bg-canvas">
       <Toaster richColors position="top-right" />
@@ -229,8 +239,10 @@ function Dashboard() {
                   key={link.id}
                   link={link}
                   index={i}
+                  total={profile.links.length}
                   onChange={(patch) => updateLink(link.id, patch)}
                   onRemove={() => removeLink(link.id)}
+                  onMove={(dir) => moveLink(link.id, dir)}
                 />
               ))}
               {profile.links.length === 0 && (
