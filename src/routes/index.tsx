@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2 } from "lucide-react";
+import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -329,7 +329,45 @@ function Dashboard() {
 
 
         {/* Phone preview column */}
-        <aside className="lg:sticky lg:top-20 lg:self-start">
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          {/* Unique URL */}
+          {(() => {
+            const slug =
+              profile.profileName
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-|-$/g, "") || "untitled";
+            const origin =
+              typeof window !== "undefined" ? window.location.origin : "https://tapandrate.co.uk";
+            const url = `${origin}/p/${slug}`;
+            return (
+              <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <Link2 className="h-3.5 w-3.5" /> Your unique profile URL
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+                  <span className="flex-1 truncate font-mono text-xs text-foreground">{url}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 shrink-0"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        toast.success("URL copied to clipboard");
+                      } catch {
+                        toast.error("Couldn't copy. Select and copy manually.");
+                      }
+                    }}
+                  >
+                    <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Smartphone className="h-3.5 w-3.5" /> Live preview
