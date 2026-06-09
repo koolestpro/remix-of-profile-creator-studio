@@ -1,21 +1,10 @@
-export type IconKey =
-  | "google"
-  | "instagram"
-  | "tiktok"
-  | "facebook"
-  | "apple"
-  | "play"
-  | "gift"
-  | "link"
-  | "youtube"
-  | "twitter"
-  | "mail"
-  | "phone";
+import type { IconKey } from "@/lib/icon-registry";
+export type { IconKey };
 
 export interface LinkItem {
   id: string;
   icon: IconKey;
-  iconUrl?: string; // custom uploaded icon
+  iconUrl?: string;
   title: string;
   subtitle: string;
   url: string;

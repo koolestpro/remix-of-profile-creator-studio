@@ -1,50 +1,59 @@
 import {
-  Instagram,
-  Facebook,
-  Youtube,
-  Twitter,
-  Mail,
-  Phone,
-  Link as LinkIcon,
-  Gift,
-  Apple,
-  Play,
-  Music2,
-  Chrome,
-} from "lucide-react";
-import type { IconKey } from "./profile-types";
+  GoogleIcon,
+  InstagramIcon,
+  TikTokIcon,
+  FacebookIcon,
+  TripadvisorIcon,
+  TrustpilotIcon,
+  WebsiteIcon,
+  AppStoreIcon,
+  GooglePlayIcon,
+  LoyaltyIcon,
+  WhatsAppIcon,
+} from "@/components/BrandIcons";
+
+export type IconKey =
+  | "google"
+  | "instagram"
+  | "tiktok"
+  | "facebook"
+  | "tripadvisor"
+  | "trustpilot"
+  | "website"
+  | "appstore"
+  | "googleplay"
+  | "loyalty"
+  | "whatsapp";
 
 const map: Record<IconKey, React.ComponentType<{ className?: string }>> = {
-  google: Chrome,
-  instagram: Instagram,
-  tiktok: Music2,
-  facebook: Facebook,
-  apple: Apple,
-  play: Play,
-  gift: Gift,
-  link: LinkIcon,
-  youtube: Youtube,
-  twitter: Twitter,
-  mail: Mail,
-  phone: Phone,
+  google: GoogleIcon,
+  instagram: InstagramIcon,
+  tiktok: TikTokIcon,
+  facebook: FacebookIcon,
+  tripadvisor: TripadvisorIcon,
+  trustpilot: TrustpilotIcon,
+  website: WebsiteIcon,
+  appstore: AppStoreIcon,
+  googleplay: GooglePlayIcon,
+  loyalty: LoyaltyIcon,
+  whatsapp: WhatsAppIcon,
 };
 
 export const ICON_OPTIONS: { key: IconKey; label: string }[] = [
-  { key: "link", label: "Link" },
-  { key: "google", label: "Google" },
+  { key: "google", label: "Google Review" },
   { key: "instagram", label: "Instagram" },
   { key: "tiktok", label: "TikTok" },
   { key: "facebook", label: "Facebook" },
-  { key: "youtube", label: "YouTube" },
-  { key: "twitter", label: "Twitter / X" },
-  { key: "apple", label: "App Store" },
-  { key: "play", label: "Google Play" },
-  { key: "gift", label: "Loyalty / Gift" },
-  { key: "mail", label: "Email" },
-  { key: "phone", label: "Phone" },
+  { key: "tripadvisor", label: "Tripadvisor" },
+  { key: "trustpilot", label: "Trustpilot" },
+  { key: "website", label: "Website" },
+  { key: "appstore", label: "Apple App Store" },
+  { key: "googleplay", label: "Google Play" },
+  { key: "loyalty", label: "Loyalty Programme" },
+  { key: "whatsapp", label: "WhatsApp" },
 ];
 
 export function renderIcon(key: IconKey, className?: string) {
-  const Comp = map[key] ?? LinkIcon;
+  const Comp = map[key] ?? WebsiteIcon;
   return <Comp className={className} />;
 }
