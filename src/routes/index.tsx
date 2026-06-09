@@ -192,15 +192,6 @@ function Dashboard() {
                 />
               </div>
             </div>
-            <div className="mt-4 space-y-2">
-              <label className="text-sm font-medium text-foreground">Full description</label>
-              <Textarea
-                value={profile.businessDescription}
-                onChange={(e) => update("businessDescription", e.target.value)}
-                placeholder="Tell visitors more about your business"
-                rows={2}
-              />
-            </div>
           </section>
 
           {/* Theme */}
