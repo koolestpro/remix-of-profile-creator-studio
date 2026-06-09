@@ -45,6 +45,8 @@ import {
   listProfiles,
   createProfile,
   deleteProfile,
+  deleteProfiles,
+  setProfilesPaused,
   duplicateProfile,
   slugify,
   listFolders,
