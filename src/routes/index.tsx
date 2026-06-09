@@ -261,7 +261,7 @@ function Dashboard() {
             <div>
               <h2 className="text-base font-semibold text-foreground">Links</h2>
               <p className="text-xs text-muted-foreground">
-                Add up to as many links as you need. Drag to reorder (coming soon).
+                Add up to as many links as you need.
               </p>
             </div>
             <div className="mt-5 space-y-3">
