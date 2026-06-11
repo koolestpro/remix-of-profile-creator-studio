@@ -17,6 +17,7 @@ import {
   X,
   Pause,
   Play,
+  LogOut,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,8 @@ import {
   type StoredProfile,
   type Folder,
 } from "@/lib/profile-store";
+import { useAuth } from "@/lib/auth";
+import { useRequireAuth } from "@/lib/use-require-auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -76,6 +79,8 @@ const UNCATEGORIZED = "__uncategorized__";
 
 function Portal() {
   const navigate = useNavigate();
+  const { ready } = useRequireAuth();
+  const { configured, signOut } = useAuth();
   const [profiles, setProfiles] = useState<StoredProfile[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -251,7 +256,15 @@ function Portal() {
     setPendingBulkDelete(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate({ to: "/login" });
+  };
 
+  // Block the dashboard until auth is confirmed (redirect handled in the hook).
+  if (!ready) {
+    return <div className="min-h-screen bg-canvas" />;
+  }
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -275,6 +288,11 @@ function Portal() {
               </p>
             </div>
           </div>
+          {configured && (
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </Button>
+          )}
         </div>
       </header>
 

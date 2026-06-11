@@ -11,6 +11,7 @@ import { LinkEditor } from "@/components/LinkEditor";
 import { PhonePreview } from "@/components/PhonePreview";
 import type { ProfileData, LinkItem } from "@/lib/profile-types";
 import { getProfile, saveProfile, deleteProfile, slugify } from "@/lib/profile-store";
+import { useRequireAuth } from "@/lib/use-require-auth";
 
 export const Route = createFileRoute("/edit/$id")({
   head: () => ({
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/edit/$id")({
 function EditProfile() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { ready } = useRequireAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [origin, setOrigin] = useState("");
   const [notFound, setNotFound] = useState(false);
@@ -35,6 +37,10 @@ function EditProfile() {
     }
     setProfile(p);
   }, [id]);
+
+  if (!ready) {
+    return <div className="min-h-screen bg-canvas" />;
+  }
 
   if (notFound) {
     return (
@@ -129,7 +135,15 @@ function EditProfile() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> All Profiles
               </Link>
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Persist current edits, then open the public page in a new tab.
+                saveProfile(id, profile);
+                window.open(`/p/${slug}`, "_blank", "noopener,noreferrer");
+              }}
+            >
               <Eye className="mr-2 h-4 w-4" /> Preview
             </Button>
             <Button
