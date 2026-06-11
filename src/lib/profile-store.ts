@@ -4,6 +4,7 @@ export interface StoredProfile extends ProfileData {
   id: string;
   folderId?: string | null;
   paused?: boolean;
+  scanCount?: number;
   updatedAt: number;
   createdAt: number;
 }
@@ -78,6 +79,7 @@ function seed(): StoredProfile[] {
       subtitle: "Tap to open",
       url: "https://example.com",
     })),
+    scanCount: (idx * 37 + 12) % 540,
     createdAt: now - idx * 86_400_000,
     updatedAt: now - idx * 3_600_000,
   }));
@@ -102,14 +104,23 @@ function writeFolders(folders: Folder[]) {
   localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders));
 }
 
-const FOLDER_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#06b6d4", "#6366f1", "#8b5cf6", "#ec4899"];
+export const FOLDER_COLORS = [
+  "#ef4444",
+  "#f59e0b",
+  "#eab308",
+  "#10b981",
+  "#14b8a6",
+  "#3b82f6",
+  "#8b5cf6",
+  "#64748b",
+];
 
-export function createFolder(name: string): Folder {
+export function createFolder(name: string, color?: string): Folder {
   const all = listFolders();
   const folder: Folder = {
     id: crypto.randomUUID(),
     name: name.trim() || "Untitled folder",
-    color: FOLDER_COLORS[all.length % FOLDER_COLORS.length],
+    color: color ?? FOLDER_COLORS[all.length % FOLDER_COLORS.length],
     createdAt: Date.now(),
   };
   all.push(folder);
@@ -170,6 +181,7 @@ export function createProfile(name: string): StoredProfile {
   const profile: StoredProfile = {
     ...createDefaultProfile(name),
     id: crypto.randomUUID(),
+    scanCount: 0,
     createdAt: now,
     updatedAt: now,
   };

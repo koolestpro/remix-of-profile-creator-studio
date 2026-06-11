@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Menu, X, ChevronRight, Share2 } from "lucide-react";
 import { listProfiles, slugify, type StoredProfile } from "@/lib/profile-store";
 import { renderIcon } from "@/lib/icon-registry";
-import tapandrateLogo from "@/assets/tapandrate.png.asset.json";
 
 export const Route = createFileRoute("/p/$slug")({
   head: () => ({
@@ -217,9 +216,9 @@ function PublicProfile() {
               Powered by
             </span>
             <img
-              src={tapandrateLogo.url}
+              src="/tap-and-rate-transparent.png"
               alt="Tapandrate"
-              className="h-10 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
           </div>
         </section>

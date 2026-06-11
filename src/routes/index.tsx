@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Plus,
   Search,
@@ -18,6 +18,8 @@ import {
   Pause,
   Play,
   LogOut,
+  Eye,
+  Check,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -53,7 +55,9 @@ import {
   listFolders,
   createFolder,
   deleteFolder,
+  renameFolder,
   moveProfileToFolder,
+  FOLDER_COLORS,
   type StoredProfile,
   type Folder,
 } from "@/lib/profile-store";
@@ -87,6 +91,7 @@ function Portal() {
   const [query, setQuery] = useState("");
   const [newName, setNewName] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderColor, setNewFolderColor] = useState<string>(FOLDER_COLORS[0]);
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
   const [pendingDelete, setPendingDelete] = useState<StoredProfile | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
@@ -171,11 +176,20 @@ function Portal() {
   const handleCreateFolder = () => {
     const name = newFolderName.trim();
     if (!name) return;
-    const f = createFolder(name);
+    const f = createFolder(name, newFolderColor);
     setNewFolderName("");
+    setNewFolderColor(FOLDER_COLORS[0]);
     refresh();
     setActiveFolder(f.id);
     toast.success(`Folder “${f.name}” created`);
+  };
+
+  const handleRenameFolder = (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    renameFolder(id, trimmed);
+    refresh();
+    toast.success("Folder renamed");
   };
 
   const handleDeleteFolder = (f: Folder) => {
@@ -298,7 +312,7 @@ function Portal() {
 
       <main className="mx-auto grid max-w-[1400px] gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[260px_minmax(0,1fr)]">
         {/* Folders sidebar */}
-        <aside className="space-y-4">
+        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
               <FolderIcon className="h-4 w-4" /> Folders
@@ -332,6 +346,7 @@ function Portal() {
                   label={f.name}
                   count={countFor(f.id)}
                   onDelete={() => handleDeleteFolder(f)}
+                  onRename={(name) => handleRenameFolder(f.id, name)}
                 />
               ))}
             </nav>
@@ -357,6 +372,31 @@ function Portal() {
               >
                 <Plus className="h-4 w-4" />
               </Button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {FOLDER_COLORS.map((c) => {
+                const selected = newFolderColor === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setNewFolderColor(c)}
+                    aria-label={`Use ${c} for this folder`}
+                    aria-pressed={selected}
+                    className="grid h-6 w-6 place-items-center rounded-full transition hover:scale-110"
+                    style={{
+                      background: c,
+                      boxShadow: selected
+                        ? `0 0 0 2px var(--card), 0 0 0 4px ${c}`
+                        : undefined,
+                    }}
+                  >
+                    {selected && (
+                      <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </aside>
@@ -606,6 +646,7 @@ function FolderItem({
   label,
   count,
   onDelete,
+  onRename,
 }: {
   active: boolean;
   onClick: () => void;
@@ -614,7 +655,54 @@ function FolderItem({
   label: string;
   count: number;
   onDelete?: () => void;
+  onRename?: (name: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(label);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const startEditing = () => {
+    setDraft(label);
+    setEditing(true);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    const next = draft.trim();
+    if (onRename && next && next !== label) onRename(next);
+  };
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-muted px-2 py-1.5">
+        <span
+          className="grid h-5 w-5 shrink-0 place-items-center rounded text-white"
+          style={{ background: color }}
+        >
+          {icon ?? <FolderIcon className="h-3 w-3" />}
+        </span>
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          onBlur={commit}
+          className="h-6 flex-1 rounded border border-border bg-background px-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
+        />
+        <button onClick={commit} title="Save" className="text-muted-foreground hover:text-foreground">
+          <Check className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`group flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition ${
@@ -636,6 +724,15 @@ function FolderItem({
         <span className="flex-1 truncate">{label}</span>
         <span className="text-xs text-muted-foreground">{count}</span>
       </button>
+      {onRename && (
+        <button
+          onClick={startEditing}
+          className="opacity-0 transition group-hover:opacity-100"
+          title="Rename folder"
+        >
+          <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+        </button>
+      )}
       {onDelete && (
         <button
           onClick={onDelete}
@@ -710,6 +807,15 @@ function ProfileCard({
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span>Updated {updated}</span>
+            <span className="hidden sm:inline">•</span>
+            <span
+              className="inline-flex items-center gap-1"
+              title="Total views"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {(profile.scanCount ?? 0).toLocaleString()} view
+              {(profile.scanCount ?? 0) === 1 ? "" : "s"}
+            </span>
             {currentFolder && (
               <>
                 <span className="hidden sm:inline">•</span>

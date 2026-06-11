@@ -1,7 +1,6 @@
 import { ChevronRight, Menu, Share2 } from "lucide-react";
 import { ProfileData } from "@/lib/profile-types";
 import { renderIcon } from "@/lib/icon-registry";
-import tapandrateLogo from "@/assets/tapandrate.png.asset.json";
 
 export function PhonePreview({ profile }: { profile: ProfileData }) {
   return (
@@ -101,9 +100,9 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
                 POWERED BY
               </p>
               <img
-                src={tapandrateLogo.url}
+                src="/tap-and-rate-transparent.png"
                 alt="tapandrate.co.uk"
-                className="h-5 w-auto object-contain"
+                className="h-6 w-auto object-contain"
               />
             </div>
           </div>

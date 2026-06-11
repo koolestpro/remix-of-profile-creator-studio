@@ -12,4 +12,26 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+
+  // Deploy target. Inside Lovable's own build this is ignored (it forces the
+  // Cloudflare preset); outside Lovable — i.e. on Vercel — this enables Nitro's
+  // Vercel preset, which writes Vercel's Build Output API to `.vercel/output`.
+  // Without an explicit `nitro` option, the plugin skips Nitro entirely on
+  // Vercel and ships a static SPA with no SSR server → every route 404s.
+  nitro: {
+    preset: "vercel",
+
+    // Baseline HTTP security headers applied to every response.
+    routeRules: {
+      "/**": {
+        headers: {
+          "X-Frame-Options": "SAMEORIGIN",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "strict-origin-when-cross-origin",
+          "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+          "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        },
+      },
+    },
+  },
 });
