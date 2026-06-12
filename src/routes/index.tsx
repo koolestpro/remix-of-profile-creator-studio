@@ -98,14 +98,18 @@ function Portal() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
 
-  const refresh = () => {
-    setProfiles(listProfiles());
-    setFolders(listFolders());
+  const refresh = async () => {
+    try {
+      const [p, f] = await Promise.all([listProfiles(), listFolders()]);
+      setProfiles(p);
+      setFolders(f);
+    } catch {
+      toast.error("Couldn't load your profiles.");
+    }
   };
 
   useEffect(() => {
-    refresh();
-    setLoaded(true);
+    refresh().finally(() => setLoaded(true));
   }, []);
 
   const filtered = useMemo(() => {
@@ -132,39 +136,51 @@ function Portal() {
     return profiles.filter((p) => p.folderId === id).length;
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const name = newName.trim() || "Untitled Profile";
-    const p = createProfile(name);
-    if (activeFolder !== ALL && activeFolder !== UNCATEGORIZED) {
-      moveProfileToFolder(p.id, activeFolder);
+    try {
+      const p = await createProfile(name);
+      if (activeFolder !== ALL && activeFolder !== UNCATEGORIZED) {
+        await moveProfileToFolder(p.id, activeFolder);
+      }
+      setNewName("");
+      toast.success(`Created “${p.profileName}”`);
+      navigate({ to: "/edit/$id", params: { id: p.id } });
+    } catch {
+      toast.error("Couldn't create profile. Please try again.");
     }
-    setNewName("");
-    toast.success(`Created “${p.profileName}”`);
-    navigate({ to: "/edit/$id", params: { id: p.id } });
   };
 
   const handleDelete = (p: StoredProfile) => {
     setPendingDelete(p);
   };
 
-  const confirmDeleteProfile = () => {
+  const confirmDeleteProfile = async () => {
     if (!pendingDelete) return;
-    deleteProfile(pendingDelete.id);
-    refresh();
-    toast.success("Profile deleted");
+    try {
+      await deleteProfile(pendingDelete.id);
+      await refresh();
+      toast.success("Profile deleted");
+    } catch {
+      toast.error("Couldn't delete profile.");
+    }
     setPendingDelete(null);
   };
 
-  const handleDuplicate = (p: StoredProfile) => {
-    const copy = duplicateProfile(p.id);
-    if (copy) {
-      refresh();
-      toast.success(`Duplicated as “${copy.profileName}”`);
+  const handleDuplicate = async (p: StoredProfile) => {
+    try {
+      const copy = await duplicateProfile(p.id);
+      if (copy) {
+        await refresh();
+        toast.success(`Duplicated as “${copy.profileName}”`);
+      }
+    } catch {
+      toast.error("Couldn't duplicate profile.");
     }
   };
 
   const handleCopyUrl = async (p: StoredProfile) => {
-    const url = `${window.location.origin}/p/${slugify(p.profileName)}`;
+    const url = `${window.location.origin}/p/${p.slug ?? slugify(p.profileName)}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("URL copied to clipboard");
@@ -173,46 +189,65 @@ function Portal() {
     }
   };
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = async () => {
     const name = newFolderName.trim();
     if (!name) return;
-    const f = createFolder(name, newFolderColor);
-    setNewFolderName("");
-    setNewFolderColor(FOLDER_COLORS[0]);
-    refresh();
-    setActiveFolder(f.id);
-    toast.success(`Folder “${f.name}” created`);
+    try {
+      const f = await createFolder(name, newFolderColor);
+      setNewFolderName("");
+      setNewFolderColor(FOLDER_COLORS[0]);
+      await refresh();
+      setActiveFolder(f.id);
+      toast.success(`Folder “${f.name}” created`);
+    } catch {
+      toast.error("Couldn't create folder.");
+    }
   };
 
-  const handleRenameFolder = (id: string, name: string) => {
+  const handleRenameFolder = async (id: string, name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    renameFolder(id, trimmed);
-    refresh();
-    toast.success("Folder renamed");
+    try {
+      await renameFolder(id, trimmed);
+      await refresh();
+      toast.success("Folder renamed");
+    } catch {
+      toast.error("Couldn't rename folder.");
+    }
   };
 
   const handleDeleteFolder = (f: Folder) => {
     setPendingDeleteFolder(f);
   };
 
-  const confirmDeleteFolder = () => {
+  const confirmDeleteFolder = async () => {
     if (!pendingDeleteFolder) return;
-    deleteFolder(pendingDeleteFolder.id);
-    if (activeFolder === pendingDeleteFolder.id) setActiveFolder(ALL);
-    refresh();
-    toast.success("Folder deleted");
+    try {
+      await deleteFolder(pendingDeleteFolder.id);
+      if (activeFolder === pendingDeleteFolder.id) setActiveFolder(ALL);
+      await refresh();
+      toast.success("Folder deleted");
+    } catch {
+      toast.error("Couldn't delete folder.");
+    }
     setPendingDeleteFolder(null);
   };
 
-  const handleMoveToFolder = (profileId: string, folderId: string | null) => {
-    moveProfileToFolder(profileId, folderId);
-    refresh();
-    const folderName =
-      folderId === null
-        ? "Uncategorized"
-        : folders.find((f) => f.id === folderId)?.name ?? "folder";
-    toast.success(`Moved to ${folderName}`);
+  const handleMoveToFolder = async (
+    profileId: string,
+    folderId: string | null,
+  ) => {
+    try {
+      await moveProfileToFolder(profileId, folderId);
+      await refresh();
+      const folderName =
+        folderId === null
+          ? "Uncategorized"
+          : folders.find((f) => f.id === folderId)?.name ?? "folder";
+      toast.success(`Moved to ${folderName}`);
+    } catch {
+      toast.error("Couldn't move profile.");
+    }
   };
 
   const toggleSelected = (id: string) => {
@@ -252,21 +287,29 @@ function Portal() {
     selectedIds.length > 0 &&
     selectedIds.every((id) => profiles.find((p) => p.id === id)?.paused);
 
-  const handleBulkPauseToggle = () => {
+  const handleBulkPauseToggle = async () => {
     const newPaused = !allSelectedPaused;
-    setProfilesPaused(selectedIds, newPaused);
-    refresh();
-    toast.success(
-      `${selectedIds.length} profile${selectedIds.length === 1 ? "" : "s"} ${newPaused ? "paused" : "resumed"}`,
-    );
+    try {
+      await setProfilesPaused(selectedIds, newPaused);
+      await refresh();
+      toast.success(
+        `${selectedIds.length} profile${selectedIds.length === 1 ? "" : "s"} ${newPaused ? "paused" : "resumed"}`,
+      );
+    } catch {
+      toast.error("Couldn't update profiles.");
+    }
   };
 
-  const confirmBulkDelete = () => {
+  const confirmBulkDelete = async () => {
     const count = selectedIds.length;
-    deleteProfiles(selectedIds);
-    clearSelection();
-    refresh();
-    toast.success(`Deleted ${count} profile${count === 1 ? "" : "s"}`);
+    try {
+      await deleteProfiles(selectedIds);
+      clearSelection();
+      await refresh();
+      toast.success(`Deleted ${count} profile${count === 1 ? "" : "s"}`);
+    } catch {
+      toast.error("Couldn't delete profiles.");
+    }
     setPendingBulkDelete(false);
   };
 
@@ -765,7 +808,7 @@ function ProfileCard({
   onCopyUrl: () => void;
   onMoveToFolder: (folderId: string | null) => void;
 }) {
-  const slug = slugify(profile.profileName);
+  const slug = profile.slug ?? slugify(profile.profileName);
   const updated = new Date(profile.updatedAt).toLocaleDateString();
   const currentFolder = folders.find((f) => f.id === profile.folderId);
 

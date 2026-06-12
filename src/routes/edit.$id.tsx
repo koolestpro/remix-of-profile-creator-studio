@@ -30,12 +30,23 @@ function EditProfile() {
 
   useEffect(() => {
     setOrigin(window.location.origin);
-    const p = getProfile(id);
-    if (!p) {
-      setNotFound(true);
-      return;
-    }
-    setProfile(p);
+    let active = true;
+    (async () => {
+      try {
+        const p = await getProfile(id);
+        if (!active) return;
+        if (!p) {
+          setNotFound(true);
+          return;
+        }
+        setProfile(p);
+      } catch {
+        if (active) setNotFound(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (!ready) {
@@ -92,16 +103,24 @@ function EditProfile() {
       return { ...p, links };
     });
 
-  const handleSave = () => {
-    saveProfile(id, profile);
-    toast.success(`Saved “${profile.profileName || "Untitled"}”`);
+  const handleSave = async () => {
+    try {
+      await saveProfile(id, profile);
+      toast.success(`Saved “${profile.profileName || "Untitled"}”`);
+    } catch {
+      toast.error("Couldn't save. Please try again.");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!confirm(`Delete “${profile.profileName}”? This cannot be undone.`)) return;
-    deleteProfile(id);
-    toast.success("Profile deleted");
-    navigate({ to: "/" });
+    try {
+      await deleteProfile(id);
+      toast.success("Profile deleted");
+      navigate({ to: "/" });
+    } catch {
+      toast.error("Couldn't delete. Please try again.");
+    }
   };
 
   const slug = slugify(profile.profileName);
@@ -138,10 +157,12 @@ function EditProfile() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                // Persist current edits, then open the public page in a new tab.
-                saveProfile(id, profile);
-                window.open(`/p/${slug}`, "_blank", "noopener,noreferrer");
+              onClick={async () => {
+                // Persist current edits, then open the public page in a new tab
+                // using the slug the store actually saved.
+                const saved = await saveProfile(id, profile);
+                const target = saved?.slug ?? slug;
+                window.open(`/p/${target}`, "_blank", "noopener,noreferrer");
               }}
             >
               <Eye className="mr-2 h-4 w-4" /> Preview

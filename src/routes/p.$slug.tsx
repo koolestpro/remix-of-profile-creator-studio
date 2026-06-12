@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu, X, ChevronRight, Share2 } from "lucide-react";
-import { listProfiles, slugify, type StoredProfile } from "@/lib/profile-store";
+import {
+  getProfileBySlug,
+  incrementScan,
+  type StoredProfile,
+} from "@/lib/profile-store";
 import { renderIcon } from "@/lib/icon-registry";
 
 export const Route = createFileRoute("/p/$slug")({
@@ -26,15 +30,32 @@ function PublicProfile() {
   const { slug } = Route.useParams();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [menuOpen, setMenuOpen] = useState(false);
+  const counted = useRef(false);
 
-  // Profiles live in localStorage, so resolve the slug on the client only.
+  // Resolve the slug on the client (store reads run in the browser).
   useEffect(() => {
-    const match = listProfiles().find((p) => slugify(p.profileName) === slug);
-    if (!match || match.paused) {
-      setState({ status: "missing" });
-    } else {
-      setState({ status: "found", profile: match });
-    }
+    let active = true;
+    (async () => {
+      try {
+        const match = await getProfileBySlug(slug);
+        if (!active) return;
+        if (!match || match.paused) {
+          setState({ status: "missing" });
+          return;
+        }
+        // Count this view once per page load (ref guards dev double-invoke).
+        if (!counted.current) {
+          counted.current = true;
+          incrementScan(match).catch(() => {});
+        }
+        setState({ status: "found", profile: match });
+      } catch {
+        if (active) setState({ status: "missing" });
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [slug]);
 
   if (state.status === "loading") {

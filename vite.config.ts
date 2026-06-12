@@ -18,6 +18,9 @@ export default defineConfig({
   // Vercel preset, which writes Vercel's Build Output API to `.vercel/output`.
   // Without an explicit `nitro` option, the plugin skips Nitro entirely on
   // Vercel and ships a static SPA with no SSR server → every route 404s.
+  // `routeRules` is valid Nitro config and is forwarded straight to nitro() at
+  // build time, but the wrapper's exposed type surface is intentionally narrow
+  // (preset/output/cloudflare only), so we widen just this option.
   nitro: {
     preset: "vercel",
 
@@ -33,5 +36,5 @@ export default defineConfig({
         },
       },
     },
-  },
+  } as { preset: string },
 });
