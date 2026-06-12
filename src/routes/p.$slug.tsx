@@ -26,6 +26,28 @@ type LoadState =
   | { status: "found"; profile: StoredProfile }
   | { status: "missing" };
 
+/** Skip obvious crawlers so they don't inflate the view count. */
+function isLikelyBot(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /bot|crawl|spider|slurp|facebookexternalhit|bingpreview|preview|headless|lighthouse/i.test(
+    navigator.userAgent,
+  );
+}
+
+/** Throttle: count at most one view per slug per 10s from this browser. */
+function passesThrottle(slug: string): boolean {
+  try {
+    const key = `lps:view:${slug}`;
+    const last = Number(localStorage.getItem(key) || 0);
+    const now = Date.now();
+    if (now - last < 10_000) return false;
+    localStorage.setItem(key, String(now));
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 function PublicProfile() {
   const { slug } = Route.useParams();
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -43,8 +65,8 @@ function PublicProfile() {
           setState({ status: "missing" });
           return;
         }
-        // Count this view once per page load (ref guards dev double-invoke).
-        if (!counted.current) {
+        // Count this view once per page load — skip bots and throttle repeats.
+        if (!counted.current && !isLikelyBot() && passesThrottle(slug)) {
           counted.current = true;
           incrementScan(match).catch(() => {});
         }

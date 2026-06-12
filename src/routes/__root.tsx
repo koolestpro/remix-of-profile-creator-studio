@@ -78,20 +78,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Tapandrate — Link Profiles" },
+      {
+        name: "description",
+        content:
+          "Create and manage tap-and-rate link profiles — one page for reviews, socials, and more.",
+      },
+      { name: "author", content: "Tapandrate" },
+      { property: "og:title", content: "Tapandrate — Link Profiles" },
+      {
+        property: "og:description",
+        content:
+          "Create and manage tap-and-rate link profiles — one page for reviews, socials, and more.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/png", href: "/tap-and-rate-transparent.png" },
+      { rel: "apple-touch-icon", href: "/tap-and-rate-transparent.png" },
     ],
   }),
   shellComponent: RootShell,
