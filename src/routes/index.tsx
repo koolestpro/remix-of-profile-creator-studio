@@ -20,6 +20,7 @@ import {
   LogOut,
   Eye,
   Check,
+  DownloadCloud,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,10 @@ import {
   renameFolder,
   moveProfileToFolder,
   FOLDER_COLORS,
+  countLocalProfiles,
+  localImportDismissed,
+  dismissLocalImport,
+  importLocalData,
   type StoredProfile,
   type Folder,
 } from "@/lib/profile-store";
@@ -97,6 +102,9 @@ function Portal() {
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
+  const [localCount, setLocalCount] = useState(0);
+  const [importDismissed, setImportDismissed] = useState(true);
+  const [importing, setImporting] = useState(false);
 
   const refresh = async () => {
     try {
@@ -111,6 +119,36 @@ function Portal() {
   useEffect(() => {
     refresh().finally(() => setLoaded(true));
   }, []);
+
+  // Offer to import any profiles saved locally (only once Supabase is on).
+  useEffect(() => {
+    if (configured) {
+      setLocalCount(countLocalProfiles());
+      setImportDismissed(localImportDismissed());
+    }
+  }, [configured]);
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const res = await importLocalData();
+      await refresh();
+      setImportDismissed(true);
+      toast.success(
+        `Imported ${res.profiles} profile${res.profiles === 1 ? "" : "s"}` +
+          (res.folders ? ` and ${res.folders} folder${res.folders === 1 ? "" : "s"}` : ""),
+      );
+    } catch {
+      toast.error("Import failed. Please try again.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDismissImport = () => {
+    dismissLocalImport();
+    setImportDismissed(true);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -416,7 +454,7 @@ function Portal() {
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {FOLDER_COLORS.map((c) => {
                 const selected = newFolderColor === c;
                 return (
@@ -426,16 +464,16 @@ function Portal() {
                     onClick={() => setNewFolderColor(c)}
                     aria-label={`Use ${c} for this folder`}
                     aria-pressed={selected}
-                    className="grid h-6 w-6 place-items-center rounded-full transition hover:scale-110"
+                    className="grid h-4 w-4 place-items-center rounded-full transition hover:scale-110"
                     style={{
                       background: c,
                       boxShadow: selected
-                        ? `0 0 0 2px var(--card), 0 0 0 4px ${c}`
+                        ? `0 0 0 1.5px var(--card), 0 0 0 3px ${c}`
                         : undefined,
                     }}
                   >
                     {selected && (
-                      <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+                      <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
                     )}
                   </button>
                 );
@@ -446,6 +484,40 @@ function Portal() {
 
         {/* Main column */}
         <div>
+          {/* Import local profiles */}
+          {configured && !importDismissed && localCount > 0 && (
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <DownloadCloud className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {localCount} profile{localCount === 1 ? "" : "s"} saved on this
+                    device
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Import them into your account so they sync across every device.
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleDismissImport}
+                  disabled={importing}
+                >
+                  Dismiss
+                </Button>
+                <Button size="sm" onClick={handleImport} disabled={importing}>
+                  <DownloadCloud className="mr-1.5 h-3.5 w-3.5" />
+                  {importing ? "Importing…" : "Import"}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Create profile */}
           <section
             className="overflow-hidden rounded-2xl p-6 shadow-elegant"

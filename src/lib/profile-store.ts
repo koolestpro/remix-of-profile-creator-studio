@@ -538,3 +538,96 @@ export async function incrementScan(profile: {
   const { error } = await supabase.rpc("increment_scan", { p_slug: slug });
   if (error) throw error;
 }
+
+/* ============================================================
+ * One-time import: localStorage → Supabase
+ * ============================================================ */
+
+const IMPORT_FLAG = "lps:imported:v1";
+
+/** Number of profiles sitting in this browser's localStorage (no seeding). */
+export function countLocalProfiles(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return 0;
+    return (JSON.parse(raw) as StoredProfile[]).length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Whether the import banner has already been actioned/dismissed. */
+export function localImportDismissed(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(IMPORT_FLAG) === "1";
+}
+
+export function dismissLocalImport(): void {
+  if (typeof window !== "undefined") localStorage.setItem(IMPORT_FLAG, "1");
+}
+
+/**
+ * Copies the profiles + folders saved in this browser's localStorage into
+ * Supabase, preserving folder membership and view counts. Folders get fresh
+ * IDs (old → new are mapped), and slugs are de-duplicated. Sets the dismissed
+ * flag when done so it only runs once.
+ */
+export async function importLocalData(): Promise<{
+  profiles: number;
+  folders: number;
+}> {
+  if (!supabase) throw new Error("Supabase is not configured.");
+
+  const rawProfiles =
+    typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
+  const rawFolders =
+    typeof window !== "undefined" ? localStorage.getItem(FOLDERS_KEY) : null;
+  const localProfiles: StoredProfile[] = rawProfiles
+    ? JSON.parse(rawProfiles)
+    : [];
+  const localFolders: Folder[] = rawFolders ? JSON.parse(rawFolders) : [];
+
+  // 1) Folders first — remember old → new id so profiles can re-link.
+  const folderIdMap = new Map<string, string>();
+  for (const f of localFolders) {
+    const { data, error } = await supabase
+      .from("folders")
+      .insert({ name: f.name, color: f.color })
+      .select()
+      .single();
+    if (error) throw error;
+    folderIdMap.set(f.id, (data as FolderRow).id);
+  }
+
+  // 2) Profiles, with mapped folder + unique slug.
+  let imported = 0;
+  for (const p of localProfiles) {
+    const data: ProfileData = {
+      profileName: p.profileName,
+      headerImage: p.headerImage,
+      secondaryImage: p.secondaryImage,
+      businessName: p.businessName,
+      businessDescription: p.businessDescription,
+      bgColor: p.bgColor,
+      buttonColor: p.buttonColor,
+      mainButtonText: p.mainButtonText,
+      mainButtonUrl: p.mainButtonUrl,
+      links: p.links,
+    };
+    const slug = await uniqueSlug(slugify(p.profileName));
+    const folderId = p.folderId ? folderIdMap.get(p.folderId) ?? null : null;
+    const { error } = await supabase.from("profiles").insert({
+      ...profileDataToRow(data),
+      slug,
+      folder_id: folderId,
+      paused: p.paused ?? false,
+      scan_count: p.scanCount ?? 0,
+    });
+    if (error) throw error;
+    imported += 1;
+  }
+
+  dismissLocalImport();
+  return { profiles: imported, folders: localFolders.length };
+}

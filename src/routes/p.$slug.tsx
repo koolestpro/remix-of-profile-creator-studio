@@ -239,7 +239,7 @@ function PublicProfile() {
             <img
               src="/tap-and-rate-transparent.png"
               alt="Tapandrate"
-              className="h-12 w-auto object-contain"
+              className="-mt-16 h-44 w-auto object-contain"
             />
           </div>
         </section>
