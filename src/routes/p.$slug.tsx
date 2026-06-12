@@ -109,8 +109,8 @@ function PublicProfile() {
         className="mx-auto min-h-screen max-w-md"
         style={{ backgroundColor: profile.bgColor }}
       >
-        {/* Header image */}
-        <header className="relative">
+        {/* Header / background image (sits behind everything) */}
+        <header className="relative z-0">
           {profile.headerImage ? (
             <img
               src={profile.headerImage}
@@ -143,10 +143,10 @@ function PublicProfile() {
           </div>
         </header>
 
-        {/* Profile card */}
-        <section className="-mt-12 px-4">
+        {/* Profile card (logo + details sit in front of the background) */}
+        <section className="relative z-10 -mt-12 px-4">
           <div className="relative pt-36">
-            <div className="absolute left-1/2 -top-12 grid h-44 w-44 -translate-x-1/2 place-items-center overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
+            <div className="absolute left-1/2 -top-12 z-20 grid h-44 w-44 -translate-x-1/2 place-items-center overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
               {profile.secondaryImage ? (
                 <img
                   src={profile.secondaryImage}

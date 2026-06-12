@@ -17,8 +17,8 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
       >
         {/* Scrollable inner */}
         <div className="h-full overflow-y-auto scrollbar-thin">
-          {/* Header image */}
-          <div className="relative h-36 w-full overflow-hidden">
+          {/* Header / background image (behind everything) */}
+          <div className="relative z-0 h-36 w-full overflow-hidden">
             {profile.headerImage ? (
               <img src={profile.headerImage} alt="" className="h-full w-full object-cover" />
             ) : (
@@ -35,8 +35,8 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
             </button>
           </div>
 
-          {/* Secondary / logo */}
-          <div className="-mt-10 flex flex-col items-center px-5 pb-6">
+          {/* Secondary / logo (in front of the background) */}
+          <div className="relative z-10 -mt-10 flex flex-col items-center px-5 pb-6">
             <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full border-4 border-background bg-background shadow-lg">
               {profile.secondaryImage ? (
                 <img src={profile.secondaryImage} alt="" className="h-full w-full object-cover" />
