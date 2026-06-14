@@ -35,12 +35,19 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
       );
     }
 
+    // The browser key may have HTTP-referrer restrictions set in Google Cloud Console.
+    // Node.js server requests have no Referer header, so we inject one that matches
+    // the allowed domain. Set VITE_APP_URL in .env.local / Vercel env to your domain.
+    const appUrl =
+      process.env.VITE_APP_URL ?? "https://tapandrate.co.uk";
+
     const res = await fetch(
       "https://places.googleapis.com/v1/places:searchText",
       {
         method: "POST",
         headers: {
           "X-Goog-Api-Key": mapsKey,
+          "Referer": appUrl,
           "X-Goog-FieldMask":
             "places.id,places.displayName,places.formattedAddress",
           "Content-Type": "application/json",

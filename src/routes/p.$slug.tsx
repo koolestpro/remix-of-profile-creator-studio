@@ -258,12 +258,12 @@ function PublicProfile() {
             <img
               src={profile.headerImage}
               alt=""
-              className="h-52 w-full object-cover sm:h-64"
+              className="h-64 w-full object-cover"
               style={{ clipPath: "polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%)" }}
             />
           ) : (
             <div
-              className="h-52 w-full bg-gradient-to-br from-muted to-muted-foreground/20 sm:h-64"
+              className="h-64 w-full bg-gradient-to-br from-muted to-muted-foreground/20"
               style={{ clipPath: "polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%)" }}
             />
           )}
@@ -295,8 +295,8 @@ function PublicProfile() {
         </header>
 
         {/* Logo + name */}
-        <section className="relative z-10 -mt-12 px-4 pb-2">
-          <div className="flex flex-col items-center pt-14">
+        <section className="relative z-10 -mt-16 px-4 pb-2">
+          <div className="flex flex-col items-center pt-3">
             <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
               {profile.secondaryImage ? (
                 <img
@@ -395,7 +395,7 @@ function PublicProfile() {
               <img
                 src="/tap-and-rate-transparent.png"
                 alt="Tapandrate"
-                className="h-16 w-auto object-contain"
+                className="h-48 w-auto object-contain -mt-16"
               />
             </div>
           )}
