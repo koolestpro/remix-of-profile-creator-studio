@@ -104,7 +104,7 @@ function ContactForm({ businessName, onClose }: ContactFormProps) {
           <img
             src="/tapandrate-logo.png"
             alt="Tapandrate"
-            className="h-24 w-auto rounded-2xl object-contain"
+            className="w-48 h-auto rounded-2xl object-contain"
           />
         </div>
 
@@ -350,12 +350,12 @@ function PublicProfile() {
                   className="group relative flex items-center gap-4 overflow-hidden rounded-3xl bg-white px-5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_32px_-12px_rgba(0,0,0,0.25)] active:scale-[0.985]"
                 >
                   <span className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
-                  <span className="grid h-14 w-14 shrink-0 place-items-center">
+                  <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl">
                     {l.iconUrl ? (
                       <img
                         src={l.iconUrl}
                         alt=""
-                        className="h-12 w-12 object-contain"
+                        className="h-full w-full object-contain"
                       />
                     ) : (
                       renderIcon(

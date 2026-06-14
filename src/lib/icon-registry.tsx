@@ -112,7 +112,8 @@ export const ICON_DEFAULT_TEXT: Record<IconKey, { title: string; subtitle: strin
 export function renderIcon(key: IconKey, className?: string) {
   const src = ICON_IMAGE_SRC[key];
   if (src) {
-    return <img src={src} alt={key} className={className} style={{ objectFit: "contain" }} />;
+    // Images always fill their container — the caller must ensure overflow-hidden on the wrapper
+    return <img src={src} alt={key} className="h-full w-full object-contain" />;
   }
   const Comp = map[key] ?? WebsiteIcon;
   return <Comp className={className} />;
