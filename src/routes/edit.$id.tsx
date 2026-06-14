@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2, ArrowLeft } from "lucide-react";
+import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { LinkEditor } from "@/components/LinkEditor";
 import { PhonePreview } from "@/components/PhonePreview";
 import type { ProfileData, LinkItem } from "@/lib/profile-types";
 import { ICON_DEFAULT_TEXT } from "@/lib/icon-registry";
-import { getProfile, saveProfile, deleteProfile, slugify } from "@/lib/profile-store";
+import { getProfile, saveProfile, deleteProfile, slugify, uploadPdf } from "@/lib/profile-store";
 
 export const Route = createFileRoute("/edit/$id")({
   head: () => ({
@@ -27,6 +27,7 @@ function EditProfile() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [origin, setOrigin] = useState("");
   const [notFound, setNotFound] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -100,11 +101,25 @@ function EditProfile() {
     });
 
   const handleSave = async () => {
+    setSaving(true);
     try {
-      await saveProfile(id, profile);
-      toast.success(`Saved “${profile.profileName || "Untitled"}”`);
-    } catch {
-      toast.error("Couldn't save. Please try again.");
+      const result = await saveProfile(id, profile);
+      if (result === undefined) {
+        // Supabase update matched 0 rows — profile doesn't exist in DB yet.
+        // This happens if Supabase env vars are missing or migration not run.
+        toast.error(
+          “Save failed: profile not found in database. Check that VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are set in Vercel and the DB migration has been run.”,
+          { duration: 10000 },
+        );
+        return;
+      }
+      toast.success(`Saved “${profile.profileName || “Untitled”}”`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Surface the real error (e.g. missing DB columns → run migration)
+      toast.error(`Couldn't save: ${msg}`, { duration: 8000 });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -172,11 +187,16 @@ function EditProfile() {
             <Button
               size="sm"
               onClick={handleSave}
+              disabled={saving}
               style={{ background: "var(--gradient-primary)" }}
               className="text-white shadow-md"
             >
-              <Save className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Save Changes</span>
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+              ) : (
+                <Save className="h-4 w-4 sm:mr-2" />
+              )}
+              <span className="hidden sm:inline">{saving ? "Saving…" : "Save Changes"}</span>
             </Button>
           </div>
         </div>
@@ -312,26 +332,28 @@ function EditProfile() {
                     type="file"
                     accept="application/pdf"
                     className="hidden"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
+                      e.target.value = "";
                       if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        const dataUrl = reader.result as string;
+                      const toastId = toast.loading("Uploading PDF…");
+                      try {
+                        const url = await uploadPdf(id, file);
                         setProfile((p) =>
                           p
                             ? {
                                 ...p,
-                                mainButtonPdf: dataUrl,
+                                mainButtonPdf: url,
                                 mainButtonPdfName: file.name,
                                 mainButtonUrl: `${window.location.origin}/pdf/${id}`,
                               }
                             : p,
                         );
-                        toast.success("PDF attached — save to publish");
-                      };
-                      reader.readAsDataURL(file);
-                      e.target.value = "";
+                        toast.success("PDF uploaded — click Save to publish", { id: toastId });
+                      } catch (err) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });
+                      }
                     }}
                   />
                   {profile.mainButtonPdf && (
@@ -444,9 +466,15 @@ function EditProfile() {
                 <Button
                   size="lg"
                   onClick={handleSave}
+                  disabled={saving}
                   className="h-12 flex-1 bg-white px-6 text-base font-semibold text-foreground shadow-lg transition hover:bg-white/90 md:min-w-[180px] md:flex-none md:px-8"
                 >
-                  <Save className="mr-2 h-5 w-5" /> Save Design
+                  {saving ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-5 w-5" />
+                  )}
+                  {saving ? "Saving…" : "Save Design"}
                 </Button>
               </div>
             </div>

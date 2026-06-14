@@ -36,8 +36,19 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
     }
 
     // The browser key may have HTTP-referrer restrictions set in Google Cloud Console.
-    // Node.js server requests have no Referer header, so we inject one that matches
-    // the allowed domain. Set VITE_APP_URL in .env.local / Vercel env to your domain.
+    // Node.js server requests have no Referer header by default, so we inject one
+    // that matches an allowed domain.
+    //
+    // Set VITE_APP_URL in Vercel env vars (and .env.local for dev) to the domain
+    // that is whitelisted in Google Cloud Console → Credentials → your API key
+    // → Application restrictions → HTTP referrers.
+    //
+    // For the Vercel preview: VITE_APP_URL=https://remix-of-profile-creator-studio.vercel.app
+    // For production:         VITE_APP_URL=https://tapandrate.co.uk
+    //
+    // EASIEST fix: in Google Cloud Console remove the HTTP referrer restriction
+    // entirely (change "Application restrictions" to "None") — then this env var
+    // is not needed at all.
     const appUrl =
       process.env.VITE_APP_URL ?? "https://tapandrate.co.uk";
 

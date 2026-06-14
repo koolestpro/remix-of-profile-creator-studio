@@ -532,6 +532,40 @@ export async function renameProfile(id: string, name: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Upload a PDF file to Supabase Storage and return its public URL.
+ * Falls back to a base64 data-URL in localStorage-only mode.
+ *
+ * Requires a PUBLIC bucket named "pdfs" in your Supabase project:
+ *   Supabase dashboard → Storage → New bucket → Name: pdfs → Public: YES
+ */
+export async function uploadPdf(profileId: string, file: File): Promise<string> {
+  if (!supabase) {
+    // localStorage mode: embed as base64 (small PDFs only)
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("FileReader failed"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const path = `${profileId}/${crypto.randomUUID()}.pdf`;
+  const { error: uploadError } = await supabase.storage
+    .from("pdfs")
+    .upload(path, file, { contentType: "application/pdf", upsert: true });
+
+  if (uploadError) {
+    throw new Error(
+      `PDF upload failed: ${uploadError.message}. ` +
+        "Make sure you have created a public 'pdfs' bucket in Supabase Storage.",
+    );
+  }
+
+  const { data } = supabase.storage.from("pdfs").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 /** Bump a profile's view counter by one. */
 export async function incrementScan(profile: {
   id: string;
