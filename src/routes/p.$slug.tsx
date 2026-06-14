@@ -101,13 +101,11 @@ function ContactForm({ businessName, onClose }: ContactFormProps) {
 
         {/* Logo */}
         <div className="mt-2 flex justify-center">
-          <div className="rounded-2xl bg-[#0d1133] px-6 py-3">
-            <img
-              src="/tap-and-rate-transparent.png"
-              alt="Tapandrate"
-              className="h-16 w-auto object-contain"
-            />
-          </div>
+          <img
+            src="/tapandrate-logo.png"
+            alt="Tapandrate"
+            className="h-24 w-auto rounded-2xl object-contain"
+          />
         </div>
 
         {sent ? (
@@ -390,17 +388,15 @@ function PublicProfile() {
 
           {/* Powered by */}
           {profile.showPoweredBy !== false && (
-            <div className="mt-8 flex flex-col items-center gap-2">
+            <div className="mt-10 flex flex-col items-center gap-1">
               <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
                 Powered by
               </span>
-              <div className="rounded-2xl bg-[#0d1133] px-8 py-4">
-                <img
-                  src="/tap-and-rate-transparent.png"
-                  alt="Tapandrate"
-                  className="h-16 w-auto object-contain"
-                />
-              </div>
+              <img
+                src="/tap-and-rate-transparent.png"
+                alt="Tapandrate"
+                className="h-48 w-auto object-contain -mt-16"
+              />
             </div>
           )}
         </section>

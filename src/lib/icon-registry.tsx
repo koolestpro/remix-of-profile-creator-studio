@@ -82,6 +82,13 @@ export const ICON_COLORS: Record<IconKey, string> = {
  * Keys without entries fall back to the SVG.
  */
 export const ICON_IMAGE_SRC: Partial<Record<IconKey, string>> = {
+  google: "/icons/google.jpeg",
+  instagram: "/icons/instagram.png",
+  tripadvisor: "/icons/tripadvisor.png",
+  trustpilot: "/icons/trustpilot.png",
+  appstore: "/icons/appstore.png",
+  googleplay: "/icons/googleplay.png",
+  loyalty: "/icons/loyalty.jpeg",
   website: "/icons/website.avif",
   whatsapp: "/icons/whatsapp.avif",
   tiktok: "/icons/tiktok.avif",

@@ -14,15 +14,19 @@ function PdfView() {
 
   useEffect(() => {
     let cancelled = false;
-    getProfile(id).then((p) => {
-      if (cancelled) return;
-      if (!p || !p.mainButtonPdf) {
-        setMissing(true);
-        return;
-      }
-      setPdf(p.mainButtonPdf);
-      if (p.businessName) document.title = p.businessName;
-    });
+    getProfile(id)
+      .then((p) => {
+        if (cancelled) return;
+        if (!p || !p.mainButtonPdf) {
+          setMissing(true);
+          return;
+        }
+        setPdf(p.mainButtonPdf);
+        if (p.businessName) document.title = p.businessName;
+      })
+      .catch(() => {
+        if (!cancelled) setMissing(true);
+      });
     return () => { cancelled = true; };
   }, [id]);
 
