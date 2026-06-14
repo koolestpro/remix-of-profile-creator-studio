@@ -20,5 +20,9 @@ export interface ProfileData {
   buttonColor: string;
   mainButtonText: string;
   mainButtonUrl: string;
+  mainButtonPdf?: string;
+  mainButtonPdfName?: string;
   links: LinkItem[];
+  showPoweredBy?: boolean;
+  showMenuButton?: boolean;
 }

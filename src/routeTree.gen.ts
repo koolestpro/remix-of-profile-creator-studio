@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PdfIdRouteImport } from './routes/pdf.$id'
 import { Route as PSlugRouteImport } from './routes/p.$slug'
 import { Route as EditIdRouteImport } from './routes/edit.$id'
 
@@ -22,6 +23,11 @@ const LoginRoute = LoginRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfIdRoute = PdfIdRouteImport.update({
+  id: '/pdf/$id',
+  path: '/pdf/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PSlugRoute = PSlugRouteImport.update({
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/edit/$id': typeof EditIdRoute
   '/p/$slug': typeof PSlugRoute
+  '/pdf/$id': typeof PdfIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/edit/$id': typeof EditIdRoute
   '/p/$slug': typeof PSlugRoute
+  '/pdf/$id': typeof PdfIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/edit/$id': typeof EditIdRoute
   '/p/$slug': typeof PSlugRoute
+  '/pdf/$id': typeof PdfIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/edit/$id' | '/p/$slug'
+  fullPaths: '/' | '/login' | '/edit/$id' | '/p/$slug' | '/pdf/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/edit/$id' | '/p/$slug'
-  id: '__root__' | '/' | '/login' | '/edit/$id' | '/p/$slug'
+  to: '/' | '/login' | '/edit/$id' | '/p/$slug' | '/pdf/$id'
+  id: '__root__' | '/' | '/login' | '/edit/$id' | '/p/$slug' | '/pdf/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   EditIdRoute: typeof EditIdRoute
   PSlugRoute: typeof PSlugRoute
+  PdfIdRoute: typeof PdfIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf/$id': {
+      id: '/pdf/$id'
+      path: '/pdf/$id'
+      fullPath: '/pdf/$id'
+      preLoaderRoute: typeof PdfIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$slug': {
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   EditIdRoute: EditIdRoute,
   PSlugRoute: PSlugRoute,
+  PdfIdRoute: PdfIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

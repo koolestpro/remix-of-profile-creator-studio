@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Menu, X, ChevronRight, Share2 } from "lucide-react";
+import { X, ChevronRight, Share2, Menu } from "lucide-react";
 import {
   getProfileBySlug,
   incrementScan,
@@ -48,6 +48,127 @@ function passesThrottle(slug: string): boolean {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Contact form that appears when the menu button is tapped
+// ---------------------------------------------------------------------------
+interface ContactFormProps {
+  businessName: string;
+  onClose: () => void;
+}
+
+function ContactForm({ businessName, onClose }: ContactFormProps) {
+  const [fields, setFields] = useState({
+    name: "",
+    businessName: "",
+    phone: "",
+    email: "",
+  });
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Open mailto: pre-filled — swap this for a real API call / Supabase Edge Function as needed
+    const body = encodeURIComponent(
+      `Name: ${fields.name}\nBusiness: ${fields.businessName}\nPhone: ${fields.phone}\nEmail: ${fields.email}`,
+    );
+    const subject = encodeURIComponent(`Help request from ${fields.name} — ${fields.businessName}`);
+    window.open(`mailto:info@tapandrate.co.uk?subject=${subject}&body=${body}`, "_blank");
+    setSent(true);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-t-3xl bg-background px-6 pb-10 pt-4 shadow-2xl sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drag handle */}
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted-foreground/30 sm:hidden" />
+
+        {/* Close */}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-full bg-muted text-muted-foreground transition hover:bg-muted/80"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Logo */}
+        <div className="mt-2 flex justify-center">
+          <img
+            src="/tap-and-rate-transparent.png"
+            alt="Tapandrate"
+            className="h-20 w-auto object-contain"
+          />
+        </div>
+
+        {sent ? (
+          <div className="mt-6 text-center">
+            <p className="text-lg font-semibold text-foreground">Message sent!</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We'll be in touch with {businessName || "you"} shortly.
+            </p>
+          </div>
+        ) : (
+          <>
+            <h2 className="mt-4 text-center text-[17px] font-semibold text-foreground">
+              Need help with your Google Business Profile?
+            </h2>
+
+            <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
+              <input
+                required
+                placeholder="Your name"
+                value={fields.name}
+                onChange={(e) => setFields((f) => ({ ...f, name: e.target.value }))}
+                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <input
+                required
+                placeholder="Business name"
+                value={fields.businessName}
+                onChange={(e) => setFields((f) => ({ ...f, businessName: e.target.value }))}
+                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <input
+                required
+                type="tel"
+                placeholder="Contact number"
+                value={fields.phone}
+                onChange={(e) => setFields((f) => ({ ...f, phone: e.target.value }))}
+                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <input
+                required
+                type="email"
+                placeholder="Email address"
+                value={fields.email}
+                onChange={(e) => setFields((f) => ({ ...f, email: e.target.value }))}
+                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                type="submit"
+                className="mt-1 w-full rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background transition active:scale-[0.98]"
+              >
+                Send message
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 function PublicProfile() {
   const { slug } = Route.useParams();
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -124,51 +245,69 @@ function PublicProfile() {
 
   return (
     <main
-      className="min-h-screen text-foreground"
+      className="min-h-screen w-full overflow-x-hidden text-foreground"
       style={{ backgroundColor: profile.bgColor }}
     >
       <div
-        className="mx-auto min-h-screen max-w-md"
+        className="mx-auto min-h-screen w-full max-w-md"
         style={{ backgroundColor: profile.bgColor }}
       >
-        {/* Header / background image (sits behind everything) */}
+        {/* Header image — wave curve at bottom */}
         <header className="relative z-0">
           {profile.headerImage ? (
             <img
               src={profile.headerImage}
               alt=""
-              className="h-64 w-full object-cover"
+              className="h-52 w-full object-cover sm:h-64"
             />
           ) : (
-            <div className="h-64 w-full bg-gradient-to-br from-muted to-muted-foreground/20" />
+            <div className="h-52 w-full bg-gradient-to-br from-muted to-muted-foreground/20 sm:h-64" />
           )}
 
-          {/* Top bar */}
-          <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-4">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Open menu"
-              className="grid h-10 w-10 place-items-center rounded-full bg-background text-foreground shadow-md transition active:scale-95"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleShare}
-              aria-label="Share profile"
-              className="flex items-center gap-2 rounded-full px-7 py-3 text-base font-bold text-white shadow-md transition active:scale-95"
-              style={{ backgroundColor: profile.buttonColor }}
-            >
-              <Share2 className="h-4 w-4" /> Share
-            </button>
+          {/* SVG wave overlay — background color scoops into the image from below */}
+          <svg
+            aria-hidden="true"
+            className="absolute bottom-0 left-0 w-full"
+            viewBox="0 0 390 56"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M0,0 Q195,56 390,0 L390,56 L0,56 Z"
+              fill={profile.bgColor}
+            />
+          </svg>
+
+          {/* Top bar — menu + share (above wave) */}
+          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-safe pt-4">
+            {profile.showMenuButton !== false && (
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                aria-label="Open menu"
+                className="grid h-10 w-10 place-items-center rounded-full bg-background text-foreground shadow-md transition active:scale-95"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
+            <div className="ml-auto">
+              <button
+                type="button"
+                onClick={handleShare}
+                aria-label="Share profile"
+                className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-md transition active:scale-95"
+                style={{ backgroundColor: profile.buttonColor }}
+              >
+                <Share2 className="h-4 w-4" /> Share
+              </button>
+            </div>
           </div>
         </header>
 
-        {/* Profile card (logo + details sit in front of the background) */}
-        <section className="relative z-10 -mt-12 px-4">
-          <div className="relative pt-36">
-            <div className="absolute left-1/2 -top-12 z-20 grid h-44 w-44 -translate-x-1/2 place-items-center overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
+        {/* Logo + name */}
+        <section className="relative z-10 -mt-12 px-4 pb-2">
+          <div className="flex flex-col items-center pt-14">
+            <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
               {profile.secondaryImage ? (
                 <img
                   src={profile.secondaryImage}
@@ -177,26 +316,30 @@ function PublicProfile() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="text-sm font-medium text-white/70">Logo</span>
+                <span className="flex h-full w-full items-center justify-center text-sm font-medium text-white/70">
+                  Logo
+                </span>
               )}
             </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                {profile.businessName || "Business Name"}
-              </h1>
-              {profile.businessDescription && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {profile.businessDescription}
-                </p>
-              )}
-            </div>
+            <h1 className="mt-3 text-center text-xl font-bold tracking-tight text-foreground">
+              {profile.businessName || "Business Name"}
+            </h1>
+            {profile.businessDescription && (
+              <p className="mt-1 text-center text-sm text-muted-foreground">
+                {profile.businessDescription}
+              </p>
+            )}
 
             {profile.mainButtonText && (
               <a
-                href={profile.mainButtonUrl || "#"}
-                target={profile.mainButtonUrl ? "_blank" : undefined}
+                href={
+                  profile.mainButtonPdf
+                    ? `/pdf/${profile.id}`
+                    : (profile.mainButtonUrl || "#")
+                }
+                target={profile.mainButtonPdf || profile.mainButtonUrl ? "_blank" : undefined}
                 rel="noopener noreferrer"
-                className="mt-5 block w-full rounded-full px-6 py-4 text-center text-lg font-bold text-white transition active:scale-[0.98]"
+                className="mt-5 block w-full rounded-full px-6 py-4 text-center text-base font-bold text-white shadow-md transition active:scale-[0.98]"
                 style={{ backgroundColor: profile.buttonColor }}
               >
                 {profile.mainButtonText}
@@ -206,8 +349,8 @@ function PublicProfile() {
         </section>
 
         {/* Links */}
-        <section className="px-4 pt-8 pb-16">
-          <ul className="flex flex-col gap-3.5">
+        <section className="px-4 pb-16 pt-4">
+          <ul className="flex flex-col gap-3">
             {profile.links.map((l) => (
               <li key={l.id}>
                 <a
@@ -232,18 +375,18 @@ function PublicProfile() {
                     )}
                   </span>
 
-                  <span className="flex-1 text-left">
-                    <span className="block text-[17px] font-semibold leading-tight tracking-tight text-card-foreground">
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block truncate text-[17px] font-semibold leading-tight tracking-tight text-card-foreground">
                       {l.title || "Link"}
                     </span>
                     {l.subtitle && (
-                      <span className="mt-1 block text-[13px] text-muted-foreground">
+                      <span className="mt-1 block truncate text-[13px] text-muted-foreground">
                         {l.subtitle}
                       </span>
                     )}
                   </span>
                   <span
-                    className="grid h-10 w-10 place-items-center rounded-full text-white opacity-90 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white opacity-90 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100"
                     style={{ backgroundColor: profile.buttonColor }}
                   >
                     <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
@@ -254,67 +397,27 @@ function PublicProfile() {
           </ul>
 
           {/* Powered by */}
-          <div className="mt-10 flex flex-col items-center gap-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-              Powered by
-            </span>
-            <img
-              src="/tap-and-rate-transparent.png"
-              alt="Tapandrate"
-              className="-mt-16 h-44 w-auto object-contain"
-            />
-          </div>
+          {profile.showPoweredBy !== false && (
+            <div className="mt-10 flex flex-col items-center gap-1">
+              <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+                Powered by
+              </span>
+              <img
+                src="/tap-and-rate-transparent.png"
+                alt="Tapandrate"
+                className="h-16 w-auto object-contain"
+              />
+            </div>
+          )}
         </section>
       </div>
 
-      {/* Menu overlay */}
+      {/* Contact form popup */}
       {menuOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md"
-          onClick={() => setMenuOpen(false)}
-        >
-          <div
-            className="mx-auto flex h-full max-w-md flex-col px-6 py-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
-                className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-secondary-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <nav className="mt-10 flex flex-col gap-1">
-              {profile.mainButtonText && (
-                <a
-                  href={profile.mainButtonUrl || "#"}
-                  target={profile.mainButtonUrl ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  className="rounded-xl px-4 py-4 text-2xl font-semibold tracking-tight text-foreground transition hover:bg-secondary"
-                >
-                  {profile.mainButtonText}
-                </a>
-              )}
-              {profile.links.map((l) => (
-                <a
-                  key={l.id}
-                  href={l.url || "#"}
-                  target={l.url ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  className="rounded-xl px-4 py-4 text-2xl font-semibold tracking-tight text-foreground transition hover:bg-secondary"
-                >
-                  {l.title || "Link"}
-                </a>
-              ))}
-            </nav>
-            <p className="mt-auto text-center text-xs text-muted-foreground">
-              {profile.businessName}
-            </p>
-          </div>
-        </div>
+        <ContactForm
+          businessName={profile.businessName}
+          onClose={() => setMenuOpen(false)}
+        />
       )}
     </main>
   );

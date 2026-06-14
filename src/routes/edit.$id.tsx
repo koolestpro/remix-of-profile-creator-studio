@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
@@ -10,8 +11,8 @@ import { ImageUploadField } from "@/components/ImageUploadField";
 import { LinkEditor } from "@/components/LinkEditor";
 import { PhonePreview } from "@/components/PhonePreview";
 import type { ProfileData, LinkItem } from "@/lib/profile-types";
+import { ICON_DEFAULT_TEXT } from "@/lib/icon-registry";
 import { getProfile, saveProfile, deleteProfile, slugify } from "@/lib/profile-store";
-import { useRequireAuth } from "@/lib/use-require-auth";
 
 export const Route = createFileRoute("/edit/$id")({
   head: () => ({
@@ -23,7 +24,6 @@ export const Route = createFileRoute("/edit/$id")({
 function EditProfile() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { ready } = useRequireAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [origin, setOrigin] = useState("");
   const [notFound, setNotFound] = useState(false);
@@ -49,10 +49,6 @@ function EditProfile() {
     };
   }, [id]);
 
-  if (!ready) {
-    return <div className="min-h-screen bg-canvas" />;
-  }
-
   if (notFound) {
     return (
       <div className="grid min-h-screen place-items-center bg-canvas p-6">
@@ -77,17 +73,17 @@ function EditProfile() {
     );
 
   const addLink = () =>
-    setProfile((p) =>
-      p
-        ? {
-            ...p,
-            links: [
-              ...p.links,
-              { id: crypto.randomUUID(), icon: "website", title: "", subtitle: "", url: "" },
-            ],
-          }
-        : p,
-    );
+    setProfile((p) => {
+      if (!p) return p;
+      const def = ICON_DEFAULT_TEXT["google"];
+      return {
+        ...p,
+        links: [
+          ...p.links,
+          { id: crypto.randomUUID(), icon: "google" as const, title: def.title, subtitle: def.subtitle, url: "" },
+        ],
+      };
+    });
 
   const removeLink = (lid: string) =>
     setProfile((p) => (p ? { ...p, links: p.links.filter((l) => l.id !== lid) } : p));
@@ -131,32 +127,38 @@ function EditProfile() {
       <Toaster richColors position="top-right" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-2 px-3 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <div
-              className="grid h-9 w-9 place-items-center rounded-lg text-white"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-white"
               style={{ background: "var(--gradient-primary)" }}
             >
               <Sparkles className="h-4 w-4" />
             </div>
-            <div>
-              <h1 className="text-sm font-semibold leading-tight text-foreground">
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold leading-tight text-foreground">
                 Link Profile Studio
               </h1>
-              <p className="text-xs text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 Editing: {profile.businessName || "Untitled profile"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
               <Link to="/">
                 <ArrowLeft className="mr-2 h-4 w-4" /> All Profiles
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild className="sm:hidden">
+              <Link to="/" aria-label="All Profiles">
+                <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
             <Button
               variant="outline"
               size="sm"
+              className="hidden md:inline-flex"
               onClick={async () => {
                 // Persist current edits, then open the public page in a new tab
                 // using the slug the store actually saved.
@@ -173,15 +175,16 @@ function EditProfile() {
               style={{ background: "var(--gradient-primary)" }}
               className="text-white shadow-md"
             >
-              <Save className="mr-2 h-4 w-4" /> Save Changes
+              <Save className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Save Changes</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1400px] gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <main className="mx-auto grid max-w-[1400px] gap-6 px-3 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-4 sm:space-y-6">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <h2 className="text-base font-semibold text-foreground">Branding</h2>
             <p className="text-xs text-muted-foreground">
               Images and identity displayed at the top of your profile.
@@ -221,7 +224,7 @@ function EditProfile() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <h2 className="text-base font-semibold text-foreground">Theme</h2>
             <p className="text-xs text-muted-foreground">
               Pick a color from anywhere on your screen with the eyedropper, or open the picker.
@@ -240,7 +243,7 @@ function EditProfile() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-foreground">Main Button Link</h2>
@@ -279,9 +282,78 @@ function EditProfile() {
                 />
               </div>
             </div>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => document.getElementById("main-pdf-upload")?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  document.getElementById("main-pdf-upload")?.click();
+                }
+              }}
+              className="mt-4 cursor-pointer rounded-lg border-2 border-dashed border-border bg-muted/30 p-4 transition hover:border-primary hover:bg-muted/50"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {profile.mainButtonPdf ? "Replace PDF (menu)" : "Click to upload a PDF (menu)"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    We'll host it at a unique URL and auto-fill the redirect above.
+                  </p>
+                  {profile.mainButtonPdfName && (
+                    <p className="mt-1 text-xs text-foreground">📄 {profile.mainButtonPdfName}</p>
+                  )}
+                </div>
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    id="main-pdf-upload"
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const dataUrl = reader.result as string;
+                        setProfile((p) =>
+                          p
+                            ? {
+                                ...p,
+                                mainButtonPdf: dataUrl,
+                                mainButtonPdfName: file.name,
+                                mainButtonUrl: `${window.location.origin}/pdf/${id}`,
+                              }
+                            : p,
+                        );
+                        toast.success("PDF attached — save to publish");
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  {profile.mainButtonPdf && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() =>
+                        setProfile((p) =>
+                          p ? { ...p, mainButtonPdf: undefined, mainButtonPdfName: undefined, mainButtonUrl: "" } : p
+                        )
+                      }
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground">Links</h2>
               <p className="text-xs text-muted-foreground">
@@ -311,12 +383,44 @@ function EditProfile() {
             </div>
           </section>
 
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">
+                  Show "Powered by Tap and Rate"
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Display the Tap and Rate badge at the bottom of your public profile.
+                </p>
+              </div>
+              <Switch
+                checked={profile.showPoweredBy !== false}
+                onCheckedChange={(v) => update("showPoweredBy", v)}
+              />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Show menu button</h2>
+                <p className="text-xs text-muted-foreground">
+                  Display the menu icon at the top-left of your public profile (next to Share).
+                </p>
+              </div>
+              <Switch
+                checked={profile.showMenuButton !== false}
+                onCheckedChange={(v) => update("showMenuButton", v)}
+              />
+            </div>
+          </section>
+
           <section
-            className="overflow-hidden rounded-2xl border border-border p-6 shadow-elegant"
+            className="overflow-hidden rounded-2xl border border-border p-4 shadow-elegant sm:p-6"
             style={{ background: "var(--gradient-primary)" }}
           >
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-              <div className="flex-1 space-y-2">
+              <div className="min-w-0 flex-1 space-y-2">
                 <label className="text-sm font-medium text-white/90">QR Code design name</label>
                 <Input
                   value={profile.profileName}
@@ -328,19 +432,19 @@ function EditProfile() {
                   This name identifies your QR code design in your dashboard.
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   size="lg"
                   variant="outline"
                   onClick={handleDelete}
-                  className="h-12 border-white/30 bg-transparent text-white hover:bg-white/10"
+                  className="h-12 flex-1 border-white/30 bg-transparent text-white hover:bg-white/10 md:flex-none"
                 >
                   <Trash2 className="mr-2 h-5 w-5" /> Delete
                 </Button>
                 <Button
                   size="lg"
                   onClick={handleSave}
-                  className="h-12 min-w-[180px] bg-white px-8 text-base font-semibold text-foreground shadow-lg transition hover:bg-white/90"
+                  className="h-12 flex-1 bg-white px-6 text-base font-semibold text-foreground shadow-lg transition hover:bg-white/90 md:min-w-[180px] md:flex-none md:px-8"
                 >
                   <Save className="mr-2 h-5 w-5" /> Save Design
                 </Button>
@@ -376,7 +480,7 @@ function EditProfile() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <div className="mb-4 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Smartphone className="h-3.5 w-3.5" /> Live preview
             </div>

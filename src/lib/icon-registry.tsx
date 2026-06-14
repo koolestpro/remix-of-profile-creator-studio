@@ -76,7 +76,37 @@ export const ICON_COLORS: Record<IconKey, string> = {
   custom: "#8B5CF6",
 };
 
+/**
+ * Maps icon keys to static image paths in /public/icons/.
+ * When set, renderIcon() uses an <img> instead of the SVG component.
+ * Keys without entries fall back to the SVG.
+ */
+export const ICON_IMAGE_SRC: Partial<Record<IconKey, string>> = {
+  website: "/icons/website.avif",
+  whatsapp: "/icons/whatsapp.avif",
+  tiktok: "/icons/tiktok.avif",
+};
+
+export const ICON_DEFAULT_TEXT: Record<IconKey, { title: string; subtitle: string }> = {
+  google: { title: "Google", subtitle: "Leave us a review" },
+  instagram: { title: "Instagram", subtitle: "Follow us" },
+  tiktok: { title: "TikTok", subtitle: "Follow us" },
+  facebook: { title: "Facebook", subtitle: "Follow us" },
+  whatsapp: { title: "WhatsApp", subtitle: "Let's connect" },
+  website: { title: "Website", subtitle: "Visit our site" },
+  appstore: { title: "App Store", subtitle: "Download our App" },
+  googleplay: { title: "Google Play", subtitle: "Download our App" },
+  tripadvisor: { title: "Tripadvisor", subtitle: "Leave us a review" },
+  trustpilot: { title: "Trustpilot", subtitle: "Leave us a review" },
+  loyalty: { title: "Loyalty", subtitle: "Join our programme" },
+  custom: { title: "", subtitle: "" },
+};
+
 export function renderIcon(key: IconKey, className?: string) {
+  const src = ICON_IMAGE_SRC[key];
+  if (src) {
+    return <img src={src} alt={key} className={className} style={{ objectFit: "contain" }} />;
+  }
   const Comp = map[key] ?? WebsiteIcon;
   return <Comp className={className} />;
 }

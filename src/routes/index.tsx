@@ -17,10 +17,10 @@ import {
   X,
   Pause,
   Play,
-  LogOut,
   Eye,
   Check,
   DownloadCloud,
+  Download,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   listProfiles,
   createProfile,
   deleteProfile,
@@ -67,7 +74,6 @@ import {
   type Folder,
 } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth";
-import { useRequireAuth } from "@/lib/use-require-auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -88,8 +94,7 @@ const UNCATEGORIZED = "__uncategorized__";
 
 function Portal() {
   const navigate = useNavigate();
-  const { ready } = useRequireAuth();
-  const { configured, signOut } = useAuth();
+  const { configured } = useAuth();
   const [profiles, setProfiles] = useState<StoredProfile[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -351,18 +356,8 @@ function Portal() {
     setPendingBulkDelete(false);
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate({ to: "/login" });
-  };
-
-  // Block the dashboard until auth is confirmed (redirect handled in the hook).
-  if (!ready) {
-    return <div className="min-h-screen bg-canvas" />;
-  }
-
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen overflow-x-hidden bg-canvas">
       <Toaster richColors position="top-right" />
 
       <header className="border-b border-border bg-background/80 backdrop-blur-xl">
@@ -383,11 +378,6 @@ function Portal() {
               </p>
             </div>
           </div>
-          {configured && (
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
-            </Button>
-          )}
         </div>
       </header>
 
@@ -630,13 +620,15 @@ function Portal() {
                           </>
                         )}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setPendingBulkDelete(true)}
-                      >
-                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
-                      </Button>
+                      {!allVisibleSelected && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setPendingBulkDelete(true)}
+                        >
+                          <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
@@ -883,9 +875,45 @@ function ProfileCard({
   const slug = profile.slug ?? slugify(profile.profileName);
   const updated = new Date(profile.updatedAt).toLocaleDateString();
   const currentFolder = folders.find((f) => f.id === profile.folderId);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [copiedImage, setCopiedImage] = useState(false);
 
   const qrTarget = `${typeof window !== "undefined" ? window.location.origin : ""}/p/${slug}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(qrTarget)}`;
+  const qrLarge = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=8&data=${encodeURIComponent(qrTarget)}`;
+  const qrDownload = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=12&format=png&data=${encodeURIComponent(qrTarget)}`;
+
+  const handleDownloadQr = async () => {
+    try {
+      const res = await fetch(qrDownload);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug}-qr.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("QR code downloaded");
+    } catch {
+      toast.error("Couldn't download QR. Try again.");
+    }
+  };
+
+  const handleCopyQrImage = async () => {
+    try {
+      const res = await fetch(qrDownload);
+      const blob = await res.blob();
+      // @ts-ignore ClipboardItem may not be typed in all envs
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      setCopiedImage(true);
+      toast.success("QR image copied to clipboard");
+      setTimeout(() => setCopiedImage(false), 1500);
+    } catch {
+      toast.error("Image copy not supported. Use Download instead.");
+    }
+  };
 
   return (
     <div
@@ -894,8 +922,11 @@ function ProfileCard({
       }`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-        <div
-          className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 ${
+        <button
+          type="button"
+          onClick={() => setQrOpen(true)}
+          title="View QR code"
+          className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-white p-1 transition hover:ring-2 hover:ring-primary/40 ${
             profile.paused ? "opacity-40 grayscale" : ""
           }`}
         >
@@ -904,13 +935,17 @@ function ProfileCard({
             alt={`QR code for ${profile.profileName}`}
             className="h-full w-full object-contain"
           />
-        </div>
+        </button>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <h3 className="truncate text-sm font-semibold text-foreground">
+            <Link
+              to="/edit/$id"
+              params={{ id: profile.id }}
+              className="truncate text-sm font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
+            >
               {profile.profileName}
-            </h3>
+            </Link>
             <span className="truncate text-xs text-muted-foreground">
               · {profile.businessName || "—"}
             </span>
@@ -1023,6 +1058,33 @@ function ProfileCard({
           Select
         </label>
       </div>
+
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="truncate">{profile.profileName}</DialogTitle>
+            <DialogDescription>Scan, copy, or download this QR code.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            <div className="rounded-xl border border-border bg-white p-4">
+              <img
+                src={qrLarge}
+                alt={`Large QR code for ${profile.profileName}`}
+                className="h-64 w-64 object-contain"
+              />
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
+              <Button onClick={handleCopyQrImage} variant="outline" className="flex-1">
+                <Copy className="mr-2 h-4 w-4" />
+                {copiedImage ? "Copied!" : "Copy QR image"}
+              </Button>
+              <Button onClick={handleDownloadQr} className="flex-1">
+                <Download className="mr-2 h-4 w-4" /> Save QR code
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

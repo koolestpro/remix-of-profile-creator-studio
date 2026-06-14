@@ -74,9 +74,13 @@ interface ProfileRow {
   button_color: string;
   main_button_text: string;
   main_button_url: string;
+  main_button_pdf: string | null;
+  main_button_pdf_name: string | null;
   links: LinkItem[] | null;
   paused: boolean;
   scan_count: number;
+  show_powered_by: boolean | null;
+  show_menu_button: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -104,7 +108,11 @@ function rowToProfile(r: ProfileRow): StoredProfile {
     buttonColor: r.button_color,
     mainButtonText: r.main_button_text,
     mainButtonUrl: r.main_button_url,
+    mainButtonPdf: r.main_button_pdf ?? undefined,
+    mainButtonPdfName: r.main_button_pdf_name ?? undefined,
     links: Array.isArray(r.links) ? r.links : [],
+    showPoweredBy: r.show_powered_by ?? undefined,
+    showMenuButton: r.show_menu_button ?? undefined,
     createdAt: new Date(r.created_at).getTime(),
     updatedAt: new Date(r.updated_at).getTime(),
   };
@@ -122,7 +130,11 @@ function profileDataToRow(data: ProfileData) {
     button_color: data.buttonColor,
     main_button_text: data.mainButtonText,
     main_button_url: data.mainButtonUrl,
+    main_button_pdf: data.mainButtonPdf ?? null,
+    main_button_pdf_name: data.mainButtonPdfName ?? null,
     links: data.links,
+    show_powered_by: data.showPoweredBy ?? null,
+    show_menu_button: data.showMenuButton ?? null,
   };
 }
 

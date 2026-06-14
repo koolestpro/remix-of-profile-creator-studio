@@ -24,9 +24,11 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
             ) : (
               <div className="h-full w-full bg-gradient-to-br from-muted to-muted-foreground/20" />
             )}
-            <button className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/90">
-              <Menu className="h-4 w-4 text-foreground" />
-            </button>
+            {profile.showMenuButton !== false && (
+              <button className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/90">
+                <Menu className="h-4 w-4 text-foreground" />
+              </button>
+            )}
             <button
               className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white"
               style={{ backgroundColor: profile.buttonColor }}
@@ -95,16 +97,18 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
             </div>
 
             {/* Powered by */}
-            <div className="mt-8 flex flex-col items-center gap-1.5 pb-2">
-              <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/60">
-                POWERED BY
-              </p>
-              <img
-                src="/tap-and-rate-transparent.png"
-                alt="tapandrate.co.uk"
-                className="h-6 w-auto object-contain"
-              />
-            </div>
+            {profile.showPoweredBy !== false && (
+              <div className="mt-8 flex flex-col items-center gap-1.5 pb-2">
+                <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/60">
+                  POWERED BY
+                </p>
+                <img
+                  src="/tap-and-rate-transparent.png"
+                  alt="tapandrate.co.uk"
+                  className="h-6 w-auto object-contain"
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

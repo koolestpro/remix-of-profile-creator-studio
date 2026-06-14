@@ -123,7 +123,8 @@ export function ColorField({ label, value, onChange }: ColorFieldProps) {
 
   const handleEyedropper = async () => {
     if (!window.EyeDropper) {
-      toast.error("Eyedropper not supported in this browser.");
+      // Mobile / Safari: fall back to the native system color picker
+      pickerRef.current?.click();
       return;
     }
     try {
