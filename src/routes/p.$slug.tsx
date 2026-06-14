@@ -252,34 +252,24 @@ function PublicProfile() {
         className="mx-auto min-h-screen w-full max-w-md"
         style={{ backgroundColor: profile.bgColor }}
       >
-        {/* Header image — wave curve at bottom */}
+        {/* Header image — V-bottom clip shape */}
         <header className="relative z-0">
           {profile.headerImage ? (
             <img
               src={profile.headerImage}
               alt=""
               className="h-52 w-full object-cover sm:h-64"
+              style={{ clipPath: "polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%)" }}
             />
           ) : (
-            <div className="h-52 w-full bg-gradient-to-br from-muted to-muted-foreground/20 sm:h-64" />
+            <div
+              className="h-52 w-full bg-gradient-to-br from-muted to-muted-foreground/20 sm:h-64"
+              style={{ clipPath: "polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%)" }}
+            />
           )}
 
-          {/* SVG wave overlay — background color scoops into the image from below */}
-          <svg
-            aria-hidden="true"
-            className="absolute bottom-0 left-0 w-full"
-            viewBox="0 0 390 56"
-            preserveAspectRatio="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M0,0 Q195,56 390,0 L390,56 L0,56 Z"
-              fill={profile.bgColor}
-            />
-          </svg>
-
-          {/* Top bar — menu + share (above wave) */}
-          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 pt-safe pt-4">
+          {/* Top bar — menu + share */}
+          <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-safe pt-4">
             {profile.showMenuButton !== false && (
               <button
                 type="button"

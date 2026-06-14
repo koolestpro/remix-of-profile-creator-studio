@@ -44,11 +44,12 @@ export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: P
     }
     setPlaceLoading(true);
     try {
-      const { results } = await searchGooglePlaces(q);
+      const { results } = await searchGooglePlaces({ data: { query: q } });
       setPlaceResults(results);
     } catch (err) {
-      console.error(err);
-      toast.error("Couldn't search Google. Try again.");
+      console.error("Places search error:", err);
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Google Places: ${msg}`, { duration: 6000 });
     } finally {
       setPlaceLoading(false);
     }
