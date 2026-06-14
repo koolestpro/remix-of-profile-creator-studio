@@ -108,12 +108,12 @@ function EditProfile() {
         // Supabase update matched 0 rows — profile doesn't exist in DB yet.
         // This happens if Supabase env vars are missing or migration not run.
         toast.error(
-          “Save failed: profile not found in database. Check that VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are set in Vercel and the DB migration has been run.”,
+          "Save failed: profile not found in database. Check that VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are set in Vercel and the DB migration has been run.",
           { duration: 10000 },
         );
         return;
       }
-      toast.success(`Saved “${profile.profileName || “Untitled”}”`);
+      toast.success(`Saved "${profile.profileName || "Untitled"}"`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       // Surface the real error (e.g. missing DB columns → run migration)
@@ -124,7 +124,7 @@ function EditProfile() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete “${profile.profileName}”? This cannot be undone.`)) return;
+    if (!confirm(`Delete "${profile.profileName}"? This cannot be undone.`)) return;
     try {
       await deleteProfile(id);
       toast.success("Profile deleted");
@@ -396,7 +396,7 @@ function EditProfile() {
               ))}
               {profile.links.length === 0 && (
                 <p className="rounded-lg border border-dashed border-border bg-muted/30 py-8 text-center text-sm text-muted-foreground">
-                  No links yet — click “Add link” to get started.
+                  No links yet — click "Add link" to get started.
                 </p>
               )}
               <Button onClick={addLink} size="sm" className="w-full">
