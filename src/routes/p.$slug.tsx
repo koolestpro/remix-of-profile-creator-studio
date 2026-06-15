@@ -319,7 +319,7 @@ function PublicProfile() {
         {/* Logo + name */}
         <section className="relative z-10 -mt-20 px-4 pb-2">
           <div className="flex flex-col items-center pt-3">
-            <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
+            <div className="h-44 w-44 overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
               {profile.secondaryImage ? (
                 <img
                   src={profile.secondaryImage}
