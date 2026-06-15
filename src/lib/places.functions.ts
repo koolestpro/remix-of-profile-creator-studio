@@ -53,7 +53,40 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Places search failed (${res.status}): ${body}`);
+
+      // Parse the Google error body and surface an actionable hint so the
+      // toast message tells you exactly what to fix in Google Cloud Console.
+      let hint = "";
+      try {
+        const parsed = JSON.parse(body) as {
+          error?: { status?: string; message?: string };
+        };
+        const gStatus = parsed.error?.status ?? "";
+        const gMsg = parsed.error?.message ?? "";
+
+        if (gStatus === "PERMISSION_DENIED") {
+          if (gMsg.includes("not been used") || gMsg.includes("disabled")) {
+            hint =
+              "\n\n👉 FIX: Go to console.cloud.google.com → APIs & Services → Enable APIs → search for 'Places API (New)' and enable it. (The classic 'Places API' is a different product and won't work here.)";
+          } else if (
+            gMsg.includes("not authorized") ||
+            gMsg.includes("not allowed")
+          ) {
+            hint =
+              "\n\n👉 FIX: Your API key has HTTP-referrer restrictions, but this call goes through the server — it has no referrer. Go to console.cloud.google.com → Credentials → edit this key → set Application restrictions to 'None' (or 'IP addresses').";
+          } else {
+            hint =
+              "\n\n👉 FIX: Check that 'Places API (New)' is enabled and billing is active on your Google Cloud project.";
+          }
+        } else if (gStatus === "REQUEST_DENIED") {
+          hint =
+            "\n\n👉 FIX: Billing is not enabled on your Google Cloud project. Visit console.cloud.google.com → Billing to activate it.";
+        }
+      } catch {
+        /* non-JSON body — ignore */
+      }
+
+      throw new Error(`Places search failed (${res.status})${hint}\n\nRaw response: ${body}`);
     }
 
     const json = (await res.json()) as {

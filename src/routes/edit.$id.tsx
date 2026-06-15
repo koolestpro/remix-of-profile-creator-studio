@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useDeferredValue } from "react";
 import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -25,10 +25,17 @@ function EditProfile() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  // Track the saved slug so we can skip the slug uniqueness DB query on saves
+  // where the profile name hasn't changed (cuts save time roughly in half).
+  const [savedSlug, setSavedSlug] = useState<string | undefined>();
   const [origin, setOrigin] = useState("");
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
+
+  // Defer the phone preview so rapid keystrokes don't block the input.
+  // React will finish the input re-render first, then update the preview.
+  const deferredProfile = useDeferredValue(profile);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -42,6 +49,7 @@ function EditProfile() {
           return;
         }
         setProfile(p);
+        setSavedSlug(p.slug);
       } catch {
         if (active) setNotFound(true);
       }
@@ -104,7 +112,7 @@ function EditProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const result = await saveProfile(id, profile);
+      const result = await saveProfile(id, profile, savedSlug);
       if (result === undefined) {
         // Supabase update matched 0 rows — profile doesn't exist in DB yet.
         // This happens if Supabase env vars are missing or migration not run.
@@ -114,6 +122,7 @@ function EditProfile() {
         );
         return;
       }
+      if (result.slug) setSavedSlug(result.slug);
       toast.success(`Saved "${profile.profileName || "Untitled"}"`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? JSON.stringify(err);
@@ -191,7 +200,8 @@ function EditProfile() {
                 }
                 setPreviewing(true);
                 try {
-                  const saved = await saveProfile(id, profile);
+                  const saved = await saveProfile(id, profile, savedSlug);
+                  if (saved?.slug) setSavedSlug(saved.slug);
                   const target = saved?.slug ?? slug;
                   if (win) win.location.href = `/p/${target}`;
                   else window.open(`/p/${target}`, "_blank", "noopener,noreferrer");
@@ -538,7 +548,7 @@ function EditProfile() {
             <div className="mb-4 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Smartphone className="h-3.5 w-3.5" /> Live preview
             </div>
-            <PhonePreview profile={profile} />
+            <PhonePreview profile={deferredProfile ?? profile} />
           </div>
         </aside>
       </main>

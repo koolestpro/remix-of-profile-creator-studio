@@ -444,6 +444,9 @@ export async function createProfile(name: string): Promise<StoredProfile> {
 export async function saveProfile(
   id: string,
   data: ProfileData,
+  /** Pass the profile's current slug to skip a redundant uniqueness check
+   *  when the profile name hasn't changed (saves one Supabase round-trip). */
+  existingSlug?: string,
 ): Promise<StoredProfile | undefined> {
   if (!supabase) {
     const all = localListProfiles();
@@ -453,7 +456,16 @@ export async function saveProfile(
     localWriteProfiles(all);
     return all[idx];
   }
-  const slug = await uniqueSlug(slugify(data.profileName), id);
+
+  // Only run the slug uniqueness check (a full DB round-trip) when the
+  // profile name has actually changed.  In the common case — user tweaks
+  // colours/links without renaming — we reuse the existing slug and cut
+  // saves from 2 sequential Supabase queries down to 1.
+  const newBase = slugify(data.profileName);
+  const slugIsUnchanged =
+    !!existingSlug && new RegExp(`^${newBase}(-\\d+)?$`).test(existingSlug);
+  const slug = slugIsUnchanged ? existingSlug : await uniqueSlug(newBase, id);
+
   const { data: row, error } = await supabase
     .from("profiles")
     .update({ ...profileDataToRow(data), slug, updated_at: new Date().toISOString() })
