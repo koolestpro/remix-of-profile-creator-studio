@@ -345,14 +345,48 @@ export async function moveProfileToFolder(
   if (error) throw error;
 }
 
+// The dashboard cards only need these fields — fetching the heavy image/links
+// columns for the whole list is what made loading slow. The editor and public
+// page still fetch the full row by id/slug.
+const LIST_COLUMNS =
+  "id, slug, profile_name, folder_id, business_name, paused, scan_count, created_at, updated_at";
+
+interface ProfileListRow {
+  id: string;
+  slug: string;
+  profile_name: string;
+  folder_id: string | null;
+  business_name: string;
+  paused: boolean;
+  scan_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+function listRowToProfile(r: ProfileListRow): StoredProfile {
+  return {
+    ...createDefaultProfile(r.profile_name),
+    id: r.id,
+    slug: r.slug,
+    folderId: r.folder_id,
+    paused: r.paused,
+    scanCount: r.scan_count,
+    profileName: r.profile_name,
+    businessName: r.business_name ?? "",
+    links: [],
+    createdAt: new Date(r.created_at).getTime(),
+    updatedAt: new Date(r.updated_at).getTime(),
+  };
+}
+
 export async function listProfiles(): Promise<StoredProfile[]> {
   if (!supabase) return localListProfiles();
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select(LIST_COLUMNS)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data as ProfileRow[]).map(rowToProfile);
+  return (data as unknown as ProfileListRow[]).map(listRowToProfile);
 }
 
 export async function getProfile(id: string): Promise<StoredProfile | undefined> {

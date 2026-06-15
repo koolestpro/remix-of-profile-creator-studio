@@ -47,11 +47,25 @@ create table if not exists public.profiles (
 create index if not exists profiles_slug_idx   on public.profiles (slug);
 create index if not exists profiles_folder_idx on public.profiles (folder_id);
 
+-- Migrate older databases: add newer columns if they're missing.
+alter table public.profiles add column if not exists main_button_pdf      text;
+alter table public.profiles add column if not exists main_button_pdf_name text;
+alter table public.profiles add column if not exists show_powered_by      boolean;
+alter table public.profiles add column if not exists show_menu_button     boolean;
+
 -- ------------------------------------------------------------
 -- ROW LEVEL SECURITY
 -- ------------------------------------------------------------
 alter table public.profiles enable row level security;
 alter table public.folders  enable row level security;
+
+-- Table privileges. RLS decides which ROWS are visible/writable; GRANT decides
+-- whether the role can touch the table at all. Missing grants can surface as a
+-- 500 from the REST API, so set them explicitly.
+grant usage on schema public to anon, authenticated;
+grant select on public.profiles to anon, authenticated;
+grant insert, update, delete on public.profiles to authenticated;
+grant all on public.folders to authenticated;
 
 -- Public pages (/p/:slug) must be readable by anyone — this is public data.
 drop policy if exists "public read profiles" on public.profiles;
@@ -91,6 +105,30 @@ as $$
 $$;
 
 grant execute on function public.increment_scan(text) to anon, authenticated;
+
+-- Tell PostgREST to reload its schema cache (fixes stale-cache 500s after
+-- adding columns or changing grants).
+notify pgrst, 'reload schema';
+
+-- ------------------------------------------------------------
+-- STORAGE: 'pdfs' bucket for the main-button PDF upload
+-- Storage has its own RLS on storage.objects (separate from the app tables),
+-- which is why an upload fails until this bucket + policies exist.
+-- ------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('pdfs', 'pdfs', true)
+on conflict (id) do update set public = true;
+
+-- Anyone can read a PDF by its public URL.
+drop policy if exists "public read pdfs" on storage.objects;
+create policy "public read pdfs" on storage.objects
+  for select using (bucket_id = 'pdfs');
+
+-- Logged-in admins can upload / replace / delete PDFs.
+drop policy if exists "auth write pdfs" on storage.objects;
+create policy "auth write pdfs" on storage.objects
+  for all to authenticated
+  using (bucket_id = 'pdfs') with check (bucket_id = 'pdfs');
 
 -- ============================================================
 -- Done. Create your admin user under Authentication → Users → Add user

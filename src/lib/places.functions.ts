@@ -15,7 +15,7 @@ export interface PlaceResult {
 }
 
 export const searchGooglePlaces = createServerFn({ method: "POST" })
-  .inputValidator((data: { query: string }) => {
+  .validator((data: { query: string }) => {
     if (!data || typeof data.query !== "string") {
       throw new Error("query is required");
     }
