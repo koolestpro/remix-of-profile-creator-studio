@@ -26,7 +26,7 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // process.env picks up VITE_* vars on the server via Vite/Vinxi env loading
     const mapsKey =
-      process.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+      process.env.VITE_GOOGLE_MAPS_API_KEY ?? process.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
 
     if (!mapsKey) {
       throw new Error(
@@ -35,22 +35,7 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
       );
     }
 
-    // The browser key may have HTTP-referrer restrictions set in Google Cloud Console.
-    // Node.js server requests have no Referer header by default, so we inject one
-    // that matches an allowed domain.
-    //
-    // Set VITE_APP_URL in Vercel env vars (and .env.local for dev) to the domain
-    // that is whitelisted in Google Cloud Console → Credentials → your API key
-    // → Application restrictions → HTTP referrers.
-    //
-    // For the Vercel preview: VITE_APP_URL=https://remix-of-profile-creator-studio.vercel.app
-    // For production:         VITE_APP_URL=https://tapandrate.co.uk
-    //
-    // EASIEST fix: in Google Cloud Console remove the HTTP referrer restriction
-    // entirely (change "Application restrictions" to "None") — then this env var
-    // is not needed at all.
-    const appUrl =
-      process.env.VITE_APP_URL ?? "https://tapandrate.co.uk";
+    console.log("🔑 Using Maps key:", mapsKey.slice(0, 12) + "...");
 
     const res = await fetch(
       "https://places.googleapis.com/v1/places:searchText",
@@ -58,7 +43,6 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
         method: "POST",
         headers: {
           "X-Goog-Api-Key": mapsKey,
-          "Referer": appUrl,
           "X-Goog-FieldMask":
             "places.id,places.displayName,places.formattedAddress",
           "Content-Type": "application/json",
