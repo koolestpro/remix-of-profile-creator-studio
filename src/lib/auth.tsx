@@ -59,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    // scope: 'global' revokes the refresh token on the server so ALL browser
+    // tabs and devices are signed out, not just this one.
+    await supabase.auth.signOut({ scope: "global" });
     setSession(null);
   };
 

@@ -76,6 +76,7 @@ import {
   type Folder,
 } from "@/lib/profile-store";
 import { useAuth } from "@/lib/auth";
+import { useRequireAuth } from "@/lib/use-require-auth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -97,6 +98,9 @@ const UNCATEGORIZED = "__uncategorized__";
 function Portal() {
   const navigate = useNavigate();
   const { configured, signOut } = useAuth();
+  // Guard: redirect to /login when session expires or after sign out.
+  // This also handles the browser back-button after logout.
+  useRequireAuth();
   const [profiles, setProfiles] = useState<StoredProfile[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -110,6 +114,7 @@ function Portal() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [localCount, setLocalCount] = useState(0);
   const [importDismissed, setImportDismissed] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -393,12 +398,27 @@ function Portal() {
             <Button
               variant="outline"
               size="sm"
+              disabled={signingOut}
               onClick={async () => {
-                await signOut();
+                setSigningOut(true);
+                try {
+                  await signOut();
+                } catch {
+                  // Sign-out errors are non-fatal — clear local state and
+                  // redirect regardless so the user is never stuck.
+                  toast.error("Sign-out issue — you've been logged out locally.");
+                } finally {
+                  setSigningOut(false);
+                }
                 navigate({ to: "/login" });
               }}
             >
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
+              {signingOut ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="mr-2 h-4 w-4" />
+              )}
+              {signingOut ? "Signing out…" : "Sign out"}
             </Button>
           )}
         </div>

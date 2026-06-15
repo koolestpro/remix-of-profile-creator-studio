@@ -431,12 +431,25 @@ export async function createProfile(name: string): Promise<StoredProfile> {
     return profile;
   }
   const data = createDefaultProfile(name);
-  const slug = await uniqueSlug(slugify(name));
-  const { data: row, error } = await supabase
-    .from("profiles")
-    .insert({ ...profileDataToRow(data), slug })
-    .select()
-    .single();
+  const id = crypto.randomUUID();
+  const base = slugify(name) || "profile";
+
+  // Optimistic single-insert: try the clean slug first without a pre-check
+  // query. Only fall back to a suffixed slug on a real unique-constraint
+  // violation (code 23505). This cuts the common case from 2 DB calls → 1.
+  const tryInsert = async (slug: string) => {
+    return supabase!
+      .from("profiles")
+      .insert({ ...profileDataToRow(data), id, slug })
+      .select()
+      .single();
+  };
+
+  let { data: row, error } = await tryInsert(base);
+  if (error?.code === "23505") {
+    // Slug collision — retry with a short UUID suffix (virtually unique)
+    ({ data: row, error } = await tryInsert(`${base}-${id.slice(0, 6)}`));
+  }
   if (error) throw error;
   return rowToProfile(row as ProfileRow);
 }
