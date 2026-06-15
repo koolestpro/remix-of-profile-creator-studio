@@ -115,7 +115,7 @@ function EditProfile() {
       }
       toast.success(`Saved "${profile.profileName || "Untitled"}"`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? JSON.stringify(err);
       // Surface the real error (e.g. missing DB columns → run migration)
       toast.error(`Couldn't save: ${msg}`, { duration: 8000 });
     } finally {
@@ -351,7 +351,7 @@ function EditProfile() {
                         );
                         toast.success("PDF uploaded — click Save to publish", { id: toastId });
                       } catch (err) {
-                        const msg = err instanceof Error ? err.message : String(err);
+                        const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? JSON.stringify(err);
                         toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });
                       }
                     }}

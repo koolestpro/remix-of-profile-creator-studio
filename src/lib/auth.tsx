@@ -48,28 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Auto sign-out after a period of inactivity (admin session timeout).
-  useEffect(() => {
-    if (!supabase || !session) return;
-    const TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
-    let timer: ReturnType<typeof setTimeout>;
-    const reset = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        supabase?.auth.signOut();
-      }, TIMEOUT_MS);
-    };
-    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
-    events.forEach((e) =>
-      window.addEventListener(e, reset, { passive: true }),
-    );
-    reset();
-    return () => {
-      clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, reset));
-    };
-  }, [session]);
-
   const signIn = async (email: string, password: string) => {
     if (!supabase) return { error: "Supabase is not configured yet." };
     const { error } = await supabase.auth.signInWithPassword({

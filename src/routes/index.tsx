@@ -190,7 +190,10 @@ function Portal() {
       toast.success(`Created “${p.profileName}”`);
       navigate({ to: "/edit/$id", params: { id: p.id } });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as { message?: string })?.message ?? JSON.stringify(err);
       toast.error(`Couldn't create profile: ${msg}`, { duration: 8000 });
     }
   };
