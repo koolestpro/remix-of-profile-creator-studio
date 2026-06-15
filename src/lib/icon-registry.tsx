@@ -81,17 +81,19 @@ export const ICON_COLORS: Record<IconKey, string> = {
  * When set, renderIcon() uses an <img> instead of the SVG component.
  * Keys without entries fall back to the SVG.
  */
+// Normalized, uniform 512² icons (padding trimmed, glyph centered) so every
+// platform fills its slot consistently — not just Google.
 export const ICON_IMAGE_SRC: Partial<Record<IconKey, string>> = {
-  google: "/icons/google.jpeg",
-  instagram: "/icons/instagram.png",
-  tripadvisor: "/icons/tripadvisor.png",
-  trustpilot: "/icons/trustpilot.png",
-  appstore: "/icons/appstore.png",
-  googleplay: "/icons/googleplay.png",
-  loyalty: "/icons/loyalty.jpeg",
-  website: "/icons/website.avif",
-  whatsapp: "/icons/whatsapp.avif",
-  tiktok: "/icons/tiktok.avif",
+  google: "/icons/google.sq.png",
+  instagram: "/icons/instagram.sq.png",
+  tripadvisor: "/icons/tripadvisor.sq.png",
+  trustpilot: "/icons/trustpilot.sq.png",
+  appstore: "/icons/appstore.sq.png",
+  googleplay: "/icons/googleplay.sq.png",
+  loyalty: "/icons/loyalty.sq.png",
+  website: "/icons/website.sq.png",
+  whatsapp: "/icons/whatsapp.sq.png",
+  tiktok: "/icons/tiktok.sq.png",
 };
 
 export const ICON_DEFAULT_TEXT: Record<IconKey, { title: string; subtitle: string }> = {

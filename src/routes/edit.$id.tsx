@@ -28,6 +28,7 @@ function EditProfile() {
   const [origin, setOrigin] = useState("");
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -138,8 +139,8 @@ function EditProfile() {
   const url = `${origin}/p/${slug}`;
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <Toaster richColors position="top-right" />
+    <div className="min-h-screen overflow-x-hidden bg-canvas">
+      <Toaster richColors position="bottom-center" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-2 px-3 py-3 sm:px-6">
@@ -174,15 +175,31 @@ function EditProfile() {
               variant="outline"
               size="sm"
               className="hidden md:inline-flex"
+              disabled={previewing || saving}
               onClick={async () => {
-                // Persist current edits, then open the public page in a new tab
-                // using the slug the store actually saved.
-                const saved = await saveProfile(id, profile);
-                const target = saved?.slug ?? slug;
-                window.open(`/p/${target}`, "_blank", "noopener,noreferrer");
+                // Open the tab synchronously (inside the click) so the browser
+                // doesn't block it as a pop-up after the async save.
+                const win = window.open("", "_blank", "noopener,noreferrer");
+                setPreviewing(true);
+                try {
+                  const saved = await saveProfile(id, profile);
+                  const target = saved?.slug ?? slug;
+                  if (win) win.location.href = `/p/${target}`;
+                  else window.open(`/p/${target}`, "_blank", "noopener,noreferrer");
+                } catch {
+                  win?.close();
+                  toast.error("Couldn't open preview. Please try again.");
+                } finally {
+                  setPreviewing(false);
+                }
               }}
             >
-              <Eye className="mr-2 h-4 w-4" /> Preview
+              {previewing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Eye className="mr-2 h-4 w-4" />
+              )}
+              Preview
             </Button>
             <Button
               size="sm"
@@ -349,7 +366,7 @@ function EditProfile() {
                               }
                             : p,
                         );
-                        toast.success("PDF uploaded — click Save to publish", { id: toastId });
+                        toast.success("PDF uploaded — click Save to publish", { id: toastId, duration: 3000 });
                       } catch (err) {
                         const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? JSON.stringify(err);
                         toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });

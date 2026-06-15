@@ -71,11 +71,11 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
                   key={l.id}
                   className="flex items-center gap-3 rounded-xl bg-background/95 p-2.5 shadow-sm"
                 >
-                  <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg">
                     {l.iconUrl ? (
                       <img src={l.iconUrl} alt="" className="h-full w-full object-contain" />
                     ) : (
-                      renderIcon(l.icon, "h-5 w-5 text-foreground")
+                      renderIcon(l.icon, "h-full w-full object-contain text-foreground")
                     )}
                   </div>
                   <div className="min-w-0 flex-1">

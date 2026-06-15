@@ -338,7 +338,7 @@ function PublicProfile() {
                     ) : (
                       renderIcon(
                         l.icon,
-                        "h-12 w-12 transition-transform duration-300 group-hover:scale-105",
+                        "h-full w-full object-contain transition-transform duration-300 group-hover:scale-105",
                       )
                     )}
                   </span>

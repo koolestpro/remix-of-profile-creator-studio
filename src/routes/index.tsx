@@ -21,6 +21,8 @@ import {
   Check,
   DownloadCloud,
   Download,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -94,7 +96,7 @@ const UNCATEGORIZED = "__uncategorized__";
 
 function Portal() {
   const navigate = useNavigate();
-  const { configured } = useAuth();
+  const { configured, signOut } = useAuth();
   const [profiles, setProfiles] = useState<StoredProfile[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -107,6 +109,7 @@ function Portal() {
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [localCount, setLocalCount] = useState(0);
   const [importDismissed, setImportDismissed] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -180,7 +183,9 @@ function Portal() {
   };
 
   const handleCreate = async () => {
+    if (creating) return;
     const name = newName.trim() || "Untitled Profile";
+    setCreating(true);
     try {
       const p = await createProfile(name);
       if (activeFolder !== ALL && activeFolder !== UNCATEGORIZED) {
@@ -195,6 +200,8 @@ function Portal() {
           ? err.message
           : (err as { message?: string })?.message ?? JSON.stringify(err);
       toast.error(`Couldn't create profile: ${msg}`, { duration: 8000 });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -362,7 +369,7 @@ function Portal() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-canvas">
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="bottom-center" />
 
       <header className="border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-4 py-4 sm:px-6">
@@ -382,12 +389,24 @@ function Portal() {
               </p>
             </div>
           </div>
+          {configured && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await signOut();
+                navigate({ to: "/login" });
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </Button>
+          )}
         </div>
       </header>
 
       <main className="mx-auto grid max-w-[1400px] gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[260px_minmax(0,1fr)]">
-        {/* Folders sidebar */}
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        {/* Folders sidebar — below the profiles on mobile, beside them on desktop */}
+        <aside className="order-2 space-y-4 lg:order-1 lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
               <FolderIcon className="h-4 w-4" /> Folders
@@ -477,7 +496,7 @@ function Portal() {
         </aside>
 
         {/* Main column */}
-        <div>
+        <div className="order-1 min-w-0 lg:order-2">
           {/* Import local profiles */}
           {configured && !importDismissed && localCount > 0 && (
             <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -539,9 +558,15 @@ function Portal() {
                 <Button
                   size="lg"
                   onClick={handleCreate}
+                  disabled={creating}
                   className="h-11 bg-white px-6 font-semibold text-foreground shadow-md transition hover:bg-white/90"
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Create profile
+                  {creating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  {creating ? "Creating…" : "Create profile"}
                 </Button>
               </div>
             </div>
