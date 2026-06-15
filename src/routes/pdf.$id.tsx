@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { getProfile } from "@/lib/profile-store";
+import { getProfilePdf } from "@/lib/profile-store";
 
 export const Route = createFileRoute("/pdf/$id")({
   head: () => ({ meta: [{ title: "Menu" }] }),
@@ -14,20 +14,22 @@ function PdfView() {
 
   useEffect(() => {
     let cancelled = false;
-    getProfile(id)
+    getProfilePdf(id)
       .then((p) => {
         if (cancelled) return;
-        if (!p || !p.mainButtonPdf) {
+        if (!p || !p.pdf) {
           setMissing(true);
           return;
         }
-        setPdf(p.mainButtonPdf);
+        setPdf(p.pdf);
         if (p.businessName) document.title = p.businessName;
       })
       .catch(() => {
         if (!cancelled) setMissing(true);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (missing) {
@@ -42,11 +44,7 @@ function PdfView() {
 
   return (
     <div className="fixed inset-0 bg-black">
-      <object
-        data={`${pdf}#view=FitH&toolbar=0`}
-        type="application/pdf"
-        className="h-full w-full"
-      >
+      <object data={`${pdf}#view=FitH&toolbar=0`} type="application/pdf" className="h-full w-full">
         <iframe src={pdf} title="PDF" className="h-full w-full border-0" />
       </object>
     </div>

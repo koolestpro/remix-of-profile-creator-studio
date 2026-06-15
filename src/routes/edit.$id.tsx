@@ -1,6 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useDeferredValue } from "react";
-import { Plus, Save, Eye, LayoutGrid, Smartphone, Sparkles, Trash2, Copy, Link2, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Save,
+  Eye,
+  LayoutGrid,
+  Smartphone,
+  Sparkles,
+  Trash2,
+  Copy,
+  Link2,
+  ArrowLeft,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -12,7 +24,14 @@ import { LinkEditor } from "@/components/LinkEditor";
 import { PhonePreview } from "@/components/PhonePreview";
 import type { ProfileData, LinkItem } from "@/lib/profile-types";
 import { ICON_DEFAULT_TEXT } from "@/lib/icon-registry";
-import { getProfile, saveProfile, deleteProfile, slugify, uploadPdf } from "@/lib/profile-store";
+import {
+  getProfile,
+  saveProfile,
+  deleteProfile,
+  slugify,
+  uploadPdf,
+  uploadImage,
+} from "@/lib/profile-store";
 
 export const Route = createFileRoute("/edit/$id")({
   head: () => ({
@@ -90,7 +109,13 @@ function EditProfile() {
         ...p,
         links: [
           ...p.links,
-          { id: crypto.randomUUID(), icon: "google" as const, title: def.title, subtitle: def.subtitle, url: "" },
+          {
+            id: crypto.randomUUID(),
+            icon: "google" as const,
+            title: def.title,
+            subtitle: def.subtitle,
+            url: "",
+          },
         ],
       };
     });
@@ -125,7 +150,10 @@ function EditProfile() {
       if (result.slug) setSavedSlug(result.slug);
       toast.success(`Saved "${profile.profileName || "Untitled"}"`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? JSON.stringify(err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : ((err as { message?: string })?.message ?? JSON.stringify(err));
       // Surface the real error (e.g. missing DB columns → run migration)
       toast.error(`Couldn't save: ${msg}`, { duration: 8000 });
     } finally {
@@ -165,7 +193,7 @@ function EditProfile() {
                 Link Profile Studio
               </h1>
               <p className="truncate text-xs text-muted-foreground">
-                Editing: {profile.businessName || "Untitled profile"}
+                Editing: {profile.businessName || profile.profileName || "Untitled"}
               </p>
             </div>
           </div>
@@ -251,6 +279,8 @@ function EditProfile() {
                 hint="Recommended 1200×525px"
                 value={profile.headerImage}
                 onChange={(v) => update("headerImage", v)}
+                onUpload={(file) => uploadImage(id, file)}
+                onError={(msg) => toast.error(`Image upload failed: ${msg}`, { duration: 8000 })}
               />
               <ImageUploadField
                 label="Secondary image / logo"
@@ -258,6 +288,8 @@ function EditProfile() {
                 value={profile.secondaryImage}
                 onChange={(v) => update("secondaryImage", v)}
                 aspect="square"
+                onUpload={(file) => uploadImage(id, file)}
+                onError={(msg) => toast.error(`Image upload failed: ${msg}`, { duration: 8000 })}
               />
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -385,9 +417,15 @@ function EditProfile() {
                               }
                             : p,
                         );
-                        toast.success("PDF uploaded — click Save to publish", { id: toastId, duration: 3000 });
+                        toast.success("PDF uploaded — click Save to publish", {
+                          id: toastId,
+                          duration: 3000,
+                        });
                       } catch (err) {
-                        const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? JSON.stringify(err);
+                        const msg =
+                          err instanceof Error
+                            ? err.message
+                            : ((err as { message?: string })?.message ?? JSON.stringify(err));
                         toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });
                       }
                     }}
@@ -399,7 +437,14 @@ function EditProfile() {
                       className="text-destructive"
                       onClick={() =>
                         setProfile((p) =>
-                          p ? { ...p, mainButtonPdf: undefined, mainButtonPdfName: undefined, mainButtonUrl: "" } : p
+                          p
+                            ? {
+                                ...p,
+                                mainButtonPdf: undefined,
+                                mainButtonPdfName: undefined,
+                                mainButtonUrl: "",
+                              }
+                            : p,
                         )
                       }
                     >
@@ -414,9 +459,7 @@ function EditProfile() {
           <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground">Links</h2>
-              <p className="text-xs text-muted-foreground">
-                Add up to as many links as you need.
-              </p>
+              <p className="text-xs text-muted-foreground">Add up to as many links as you need.</p>
             </div>
             <div className="mt-5 space-y-3">
               {profile.links.map((link, i) => (

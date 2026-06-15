@@ -26,7 +26,10 @@ export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
     profileName: name,
     headerImage: undefined,
     secondaryImage: undefined,
-    businessName: name,
+    // Business name is intentionally left blank on new profiles. It must NOT
+    // inherit the QR/profile name — the user fills it in themselves (or leaves
+    // it blank). All display sites fall back to "Business Name"/"—" gracefully.
+    businessName: "",
     businessDescription: "",
     bgColor: "#f4ead5",
     buttonColor: "#111111",
@@ -185,21 +188,98 @@ function seedFolders(): Folder[] {
 
 function seed(): StoredProfile[] {
   const now = Date.now();
-  const samples: Array<{ name: string; business: string; tagline: string; bg: string; btn: string; folderId: string | null }> = [
-    { name: "Juices4Life Profile", business: "Juices4Life Harlesden", tagline: "Fuel your Life", bg: "#f4ead5", btn: "#111111", folderId: "folder-juices4life" },
-    { name: "Bloom Coffee — Soho", business: "Bloom Coffee", tagline: "Slow brews, fast smiles", bg: "#fde8d4", btn: "#3b2417", folderId: "folder-younis" },
-    { name: "Pixel Barbers", business: "Pixel Barbers Camden", tagline: "Sharp fades since 2014", bg: "#1f2937", btn: "#fbbf24", folderId: "folder-adnan" },
-    { name: "Nori Sushi Bar", business: "Nori Sushi", tagline: "Fresh from the sea", bg: "#e0f2fe", btn: "#0c4a6e", folderId: "folder-talah" },
-    { name: "GreenLeaf Yoga", business: "GreenLeaf Studio", tagline: "Breathe. Move. Glow.", bg: "#dcfce7", btn: "#166534", folderId: "folder-younis" },
-    { name: "Vinyl & Vines", business: "Vinyl & Vines Wine Bar", tagline: "Records, wine, repeat", bg: "#fce7f3", btn: "#831843", folderId: "folder-adnan" },
-    { name: "Forge Fitness", business: "Forge Strength Co.", tagline: "Train hard, live strong", bg: "#0f172a", btn: "#ef4444", folderId: "folder-talah" },
-    { name: "Petal & Stem", business: "Petal & Stem Florist", tagline: "Hand-tied with love", bg: "#fef3c7", btn: "#b45309", folderId: null },
-    { name: "Crust Pizza Co.", business: "Crust Pizza — Shoreditch", tagline: "Wood-fired, always", bg: "#fee2e2", btn: "#991b1b", folderId: "folder-juices4life" },
-    { name: "Stride Sneakers", business: "Stride", tagline: "Step into something new", bg: "#ede9fe", btn: "#5b21b6", folderId: "folder-adnan" },
+  const samples: Array<{
+    name: string;
+    business: string;
+    tagline: string;
+    bg: string;
+    btn: string;
+    folderId: string | null;
+  }> = [
+    {
+      name: "Juices4Life Profile",
+      business: "Juices4Life Harlesden",
+      tagline: "Fuel your Life",
+      bg: "#f4ead5",
+      btn: "#111111",
+      folderId: "folder-juices4life",
+    },
+    {
+      name: "Bloom Coffee — Soho",
+      business: "Bloom Coffee",
+      tagline: "Slow brews, fast smiles",
+      bg: "#fde8d4",
+      btn: "#3b2417",
+      folderId: "folder-younis",
+    },
+    {
+      name: "Pixel Barbers",
+      business: "Pixel Barbers Camden",
+      tagline: "Sharp fades since 2014",
+      bg: "#1f2937",
+      btn: "#fbbf24",
+      folderId: "folder-adnan",
+    },
+    {
+      name: "Nori Sushi Bar",
+      business: "Nori Sushi",
+      tagline: "Fresh from the sea",
+      bg: "#e0f2fe",
+      btn: "#0c4a6e",
+      folderId: "folder-talah",
+    },
+    {
+      name: "GreenLeaf Yoga",
+      business: "GreenLeaf Studio",
+      tagline: "Breathe. Move. Glow.",
+      bg: "#dcfce7",
+      btn: "#166534",
+      folderId: "folder-younis",
+    },
+    {
+      name: "Vinyl & Vines",
+      business: "Vinyl & Vines Wine Bar",
+      tagline: "Records, wine, repeat",
+      bg: "#fce7f3",
+      btn: "#831843",
+      folderId: "folder-adnan",
+    },
+    {
+      name: "Forge Fitness",
+      business: "Forge Strength Co.",
+      tagline: "Train hard, live strong",
+      bg: "#0f172a",
+      btn: "#ef4444",
+      folderId: "folder-talah",
+    },
+    {
+      name: "Petal & Stem",
+      business: "Petal & Stem Florist",
+      tagline: "Hand-tied with love",
+      bg: "#fef3c7",
+      btn: "#b45309",
+      folderId: null,
+    },
+    {
+      name: "Crust Pizza Co.",
+      business: "Crust Pizza — Shoreditch",
+      tagline: "Wood-fired, always",
+      bg: "#fee2e2",
+      btn: "#991b1b",
+      folderId: "folder-juices4life",
+    },
+    {
+      name: "Stride Sneakers",
+      business: "Stride",
+      tagline: "Step into something new",
+      bg: "#ede9fe",
+      btn: "#5b21b6",
+      folderId: "folder-adnan",
+    },
   ];
-  const iconPool: Array<"google" | "instagram" | "tiktok" | "facebook" | "whatsapp" | "website" | "loyalty"> = [
-    "google", "instagram", "tiktok", "facebook", "whatsapp", "website", "loyalty",
-  ];
+  const iconPool: Array<
+    "google" | "instagram" | "tiktok" | "facebook" | "whatsapp" | "website" | "loyalty"
+  > = ["google", "instagram", "tiktok", "facebook", "whatsapp", "website", "loyalty"];
   return samples.map((s, idx) => ({
     ...createDefaultProfile(s.name),
     id: crypto.randomUUID(),
@@ -391,18 +471,12 @@ export async function listProfiles(): Promise<StoredProfile[]> {
 
 export async function getProfile(id: string): Promise<StoredProfile | undefined> {
   if (!supabase) return localListProfiles().find((p) => p.id === id);
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
   return data ? rowToProfile(data as ProfileRow) : undefined;
 }
 
-export async function getProfileBySlug(
-  slug: string,
-): Promise<StoredProfile | undefined> {
+export async function getProfileBySlug(slug: string): Promise<StoredProfile | undefined> {
   if (!supabase) {
     return localListProfiles().find((p) => slugify(p.profileName) === slug);
   }
@@ -475,8 +549,7 @@ export async function saveProfile(
   // colours/links without renaming — we reuse the existing slug and cut
   // saves from 2 sequential Supabase queries down to 1.
   const newBase = slugify(data.profileName);
-  const slugIsUnchanged =
-    !!existingSlug && new RegExp(`^${newBase}(-\\d+)?$`).test(existingSlug);
+  const slugIsUnchanged = !!existingSlug && new RegExp(`^${newBase}(-\\d+)?$`).test(existingSlug);
   const slug = slugIsUnchanged ? existingSlug : await uniqueSlug(newBase, id);
 
   const { data: row, error } = await supabase
@@ -508,30 +581,20 @@ export async function deleteProfiles(ids: string[]): Promise<void> {
   if (error) throw error;
 }
 
-export async function setProfilesPaused(
-  ids: string[],
-  paused: boolean,
-): Promise<void> {
+export async function setProfilesPaused(ids: string[], paused: boolean): Promise<void> {
   if (!supabase) {
     const set = new Set(ids);
     const now = Date.now();
     localWriteProfiles(
-      localListProfiles().map((p) =>
-        set.has(p.id) ? { ...p, paused, updatedAt: now } : p,
-      ),
+      localListProfiles().map((p) => (set.has(p.id) ? { ...p, paused, updatedAt: now } : p)),
     );
     return;
   }
-  const { error } = await supabase
-    .from("profiles")
-    .update({ paused })
-    .in("id", ids);
+  const { error } = await supabase.from("profiles").update({ paused }).in("id", ids);
   if (error) throw error;
 }
 
-export async function duplicateProfile(
-  id: string,
-): Promise<StoredProfile | undefined> {
+export async function duplicateProfile(id: string): Promise<StoredProfile | undefined> {
   if (!supabase) {
     const all = localListProfiles();
     const src = all.find((p) => p.id === id);
@@ -625,6 +688,116 @@ export async function uploadPdf(profileId: string, file: File): Promise<string> 
   return data.publicUrl;
 }
 
+/**
+ * Compress/resize an image in the browser before upload.
+ *
+ * The old flow embedded the raw image as a base64 data-URL straight into the
+ * profile row, so a single 3 MB photo became ~4 MB of text saved into Postgres
+ * AND re-downloaded on every public page view — the main cause of the slow
+ * loads/saves. We now downscale to a sane max dimension and re-encode as JPEG,
+ * typically shrinking a phone photo from megabytes to ~100-300 KB.
+ */
+async function compressImage(file: File, maxDim = 1280, quality = 0.82): Promise<Blob> {
+  // SVGs and tiny files: don't bother re-encoding.
+  if (file.type === "image/svg+xml") return file;
+
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Could not read image file"));
+    reader.readAsDataURL(file);
+  });
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Could not decode image"));
+    image.src = dataUrl;
+  });
+
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file; // Canvas unsupported — fall back to original file.
+  ctx.drawImage(img, 0, 0, w, h);
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", quality),
+  );
+  // If compression somehow produced a bigger file, keep the original.
+  if (!blob || blob.size >= file.size) return file;
+  return blob;
+}
+
+/**
+ * Upload a profile image to Supabase Storage and return its public URL.
+ * Images are compressed client-side first. Falls back to a base64 data-URL in
+ * localStorage-only mode (no Supabase configured).
+ *
+ * Requires a PUBLIC bucket named "images" in your Supabase project (created by
+ * supabase/schema.sql).
+ */
+export async function uploadImage(profileId: string, file: File): Promise<string> {
+  const compressed = await compressImage(file);
+
+  if (!supabase) {
+    // localStorage mode: embed the compressed image as base64.
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("FileReader failed"));
+      reader.readAsDataURL(compressed);
+    });
+  }
+
+  const isSvg = file.type === "image/svg+xml";
+  const ext = isSvg ? "svg" : "jpg";
+  const contentType = isSvg ? "image/svg+xml" : "image/jpeg";
+  const path = `${profileId}/${crypto.randomUUID()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("images")
+    .upload(path, compressed, { contentType, upsert: true });
+
+  if (uploadError) {
+    throw new Error(
+      `Image upload failed: ${uploadError.message}. ` +
+        "Make sure you have created a public 'images' bucket in Supabase Storage.",
+    );
+  }
+
+  const { data } = supabase.storage.from("images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+/**
+ * Lightweight fetch for the PDF viewer route — pulls only the two columns it
+ * needs (business_name, main_button_pdf) instead of the entire profile row,
+ * which previously dragged the heavy image/links columns along for nothing.
+ */
+export async function getProfilePdf(
+  id: string,
+): Promise<{ businessName: string; pdf?: string } | undefined> {
+  if (!supabase) {
+    const p = localListProfiles().find((x) => x.id === id);
+    return p ? { businessName: p.businessName, pdf: p.mainButtonPdf } : undefined;
+  }
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("business_name, main_button_pdf")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return undefined;
+  const row = data as { business_name: string; main_button_pdf: string | null };
+  return { businessName: row.business_name, pdf: row.main_button_pdf ?? undefined };
+}
+
 /** Bump a profile's view counter by one. */
 export async function incrementScan(profile: {
   id: string;
@@ -684,13 +857,9 @@ export async function importLocalData(): Promise<{
 }> {
   if (!supabase) throw new Error("Supabase is not configured.");
 
-  const rawProfiles =
-    typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
-  const rawFolders =
-    typeof window !== "undefined" ? localStorage.getItem(FOLDERS_KEY) : null;
-  const localProfiles: StoredProfile[] = rawProfiles
-    ? JSON.parse(rawProfiles)
-    : [];
+  const rawProfiles = typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
+  const rawFolders = typeof window !== "undefined" ? localStorage.getItem(FOLDERS_KEY) : null;
+  const localProfiles: StoredProfile[] = rawProfiles ? JSON.parse(rawProfiles) : [];
   const localFolders: Folder[] = rawFolders ? JSON.parse(rawFolders) : [];
 
   // 1) Folders first — remember old → new id so profiles can re-link.
@@ -721,7 +890,7 @@ export async function importLocalData(): Promise<{
       links: p.links,
     };
     const slug = await uniqueSlug(slugify(p.profileName));
-    const folderId = p.folderId ? folderIdMap.get(p.folderId) ?? null : null;
+    const folderId = p.folderId ? (folderIdMap.get(p.folderId) ?? null) : null;
     const { error } = await supabase.from("profiles").insert({
       ...profileDataToRow(data),
       slug,

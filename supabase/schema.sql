@@ -130,6 +130,27 @@ create policy "auth write pdfs" on storage.objects
   for all to authenticated
   using (bucket_id = 'pdfs') with check (bucket_id = 'pdfs');
 
+-- ------------------------------------------------------------
+-- STORAGE: 'images' bucket for header/secondary profile images
+-- Images used to be embedded as base64 directly in the profiles row, which
+-- bloated every save and every public-page read. They now upload here and the
+-- row only stores a small public URL.
+-- ------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('images', 'images', true)
+on conflict (id) do update set public = true;
+
+-- Anyone can read an image by its public URL.
+drop policy if exists "public read images" on storage.objects;
+create policy "public read images" on storage.objects
+  for select using (bucket_id = 'images');
+
+-- Logged-in admins can upload / replace / delete images.
+drop policy if exists "auth write images" on storage.objects;
+create policy "auth write images" on storage.objects
+  for all to authenticated
+  using (bucket_id = 'images') with check (bucket_id = 'images');
+
 -- ============================================================
 -- Done. Create your admin user under Authentication → Users → Add user
 -- (set "Auto Confirm User"). There is no public sign-up.

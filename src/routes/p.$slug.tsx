@@ -1,11 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { X, ChevronRight, Share2, Menu } from "lucide-react";
-import {
-  getProfileBySlug,
-  incrementScan,
-  type StoredProfile,
-} from "@/lib/profile-store";
+import { getProfileBySlug, incrementScan, type StoredProfile } from "@/lib/profile-store";
 import { renderIcon } from "@/lib/icon-registry";
 
 export const Route = createFileRoute("/p/$slug")({
@@ -34,6 +30,12 @@ interface ContactFormProps {
   onClose: () => void;
 }
 
+// Web3Forms access key — paste yours into VITE_WEB3FORMS_ACCESS_KEY in .env.local
+// (and in your Vercel env vars). It's safe to expose in the browser. Get a free
+// key at https://web3forms.com — submissions are emailed to the address you
+// registered the key with.
+const WEB3FORMS_ACCESS_KEY = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY as string | undefined;
+
 function ContactForm({ businessName, onClose }: ContactFormProps) {
   const [fields, setFields] = useState({
     name: "",
@@ -42,16 +44,56 @@ function ContactForm({ businessName, onClose }: ContactFormProps) {
     email: "",
   });
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Open mailto: pre-filled — swap this for a real API call / Supabase Edge Function as needed
-    const body = encodeURIComponent(
-      `Name: ${fields.name}\nBusiness: ${fields.businessName}\nPhone: ${fields.phone}\nEmail: ${fields.email}`,
-    );
-    const subject = encodeURIComponent(`Help request from ${fields.name} — ${fields.businessName}`);
-    window.open(`mailto:info@tapandrate.co.uk?subject=${subject}&body=${body}`, "_blank");
-    setSent(true);
+    if (submitting) return;
+    setError(null);
+
+    if (!WEB3FORMS_ACCESS_KEY) {
+      setError("This form isn't connected yet. Please add your Web3Forms key to finish setup.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          subject: `Help request from ${fields.name}${
+            fields.businessName ? ` — ${fields.businessName}` : ""
+          }`,
+          from_name: "Tapandrate Contact Form",
+          // Submitter's details
+          name: fields.name,
+          business_name: fields.businessName,
+          phone: fields.phone,
+          email: fields.email,
+          // Which profile the request came from (context for follow-up)
+          profile: businessName || "(unnamed profile)",
+        }),
+      });
+      const data = (await res.json()) as { success?: boolean; message?: string };
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Submission failed");
+      }
+      setSent(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Couldn't send your message: ${err.message}. Please try again.`
+          : "Couldn't send your message. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -130,11 +172,13 @@ function ContactForm({ businessName, onClose }: ContactFormProps) {
                 onChange={(e) => setFields((f) => ({ ...f, email: e.target.value }))}
                 className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
+              {error && <p className="text-center text-xs text-red-500">{error}</p>}
               <button
                 type="submit"
-                className="mt-1 w-full rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background transition active:scale-[0.98]"
+                disabled={submitting}
+                className="mt-1 w-full rounded-xl bg-foreground py-3.5 text-sm font-semibold text-background transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send message
+                {submitting ? "Sending…" : "Send message"}
               </button>
             </form>
           </>
@@ -300,11 +344,7 @@ function PublicProfile() {
 
             {profile.mainButtonText && (
               <a
-                href={
-                  profile.mainButtonPdf
-                    ? `/pdf/${profile.id}`
-                    : (profile.mainButtonUrl || "#")
-                }
+                href={profile.mainButtonPdf ? `/pdf/${profile.id}` : profile.mainButtonUrl || "#"}
                 target={profile.mainButtonPdf || profile.mainButtonUrl ? "_blank" : undefined}
                 rel="noopener noreferrer"
                 className="mt-5 block w-full rounded-full px-6 py-4 text-center text-base font-bold text-white shadow-md transition active:scale-[0.98]"
@@ -330,11 +370,7 @@ function PublicProfile() {
                   <span className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
                   <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl">
                     {l.iconUrl ? (
-                      <img
-                        src={l.iconUrl}
-                        alt=""
-                        className="h-full w-full object-contain"
-                      />
+                      <img src={l.iconUrl} alt="" className="h-full w-full object-contain" />
                     ) : (
                       renderIcon(
                         l.icon,
@@ -382,10 +418,7 @@ function PublicProfile() {
 
       {/* Contact form popup */}
       {menuOpen && (
-        <ContactForm
-          businessName={profile.businessName}
-          onClose={() => setMenuOpen(false)}
-        />
+        <ContactForm businessName={profile.businessName} onClose={() => setMenuOpen(false)} />
       )}
     </main>
   );
