@@ -18,11 +18,19 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
         {/* Scrollable inner */}
         <div className="h-full overflow-y-auto scrollbar-thin">
           {/* Header / background image (behind everything) */}
-          <div className="relative z-0 h-36 w-full overflow-hidden">
+          <div className="relative z-0 h-44 w-full overflow-hidden">
             {profile.headerImage ? (
-              <img src={profile.headerImage} alt="" className="h-full w-full object-cover" />
+              <img
+                src={profile.headerImage}
+                alt=""
+                className="h-full w-full object-cover object-center"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
+              />
             ) : (
-              <div className="h-full w-full bg-gradient-to-br from-muted to-muted-foreground/20" />
+              <div
+                className="h-full w-full bg-gradient-to-br from-muted to-muted-foreground/20"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
+              />
             )}
             {profile.showMenuButton !== false && (
               <button className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/90">
@@ -38,8 +46,8 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
           </div>
 
           {/* Secondary / logo (in front of the background) */}
-          <div className="relative z-10 -mt-10 flex flex-col items-center px-5 pb-6">
-            <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full border-4 border-background bg-background shadow-lg">
+          <div className="relative z-10 -mt-14 flex flex-col items-center px-5 pb-6">
+            <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-background bg-background shadow-lg">
               {profile.secondaryImage ? (
                 <img src={profile.secondaryImage} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -65,7 +73,6 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
 
             {/* Links */}
             <div className="mt-3 w-full space-y-2.5">
-
               {profile.links.map((l) => (
                 <div
                   key={l.id}

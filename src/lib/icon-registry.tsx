@@ -27,9 +27,7 @@ export type IconKey =
   | "whatsapp"
   | "custom";
 
-const CustomIcon = ({ className }: { className?: string }) => (
-  <Link2 className={className} />
-);
+const CustomIcon = ({ className }: { className?: string }) => <Link2 className={className} />;
 
 const map: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   google: GoogleIcon,
@@ -85,6 +83,7 @@ export const ICON_COLORS: Record<IconKey, string> = {
 // platform fills its slot consistently — not just Google.
 export const ICON_IMAGE_SRC: Partial<Record<IconKey, string>> = {
   google: "/icons/google.sq.png",
+  facebook: "/icons/facebook.sq.png",
   instagram: "/icons/instagram.sq.png",
   tripadvisor: "/icons/tripadvisor.sq.png",
   trustpilot: "/icons/trustpilot.sq.png",

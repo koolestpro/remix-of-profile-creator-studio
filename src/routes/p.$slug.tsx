@@ -280,13 +280,13 @@ function PublicProfile() {
             <img
               src={profile.headerImage}
               alt=""
-              className="h-64 w-full object-cover"
-              style={{ clipPath: "polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%)" }}
+              className="h-80 w-full object-cover object-center"
+              style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
             />
           ) : (
             <div
-              className="h-64 w-full bg-gradient-to-br from-muted to-muted-foreground/20"
-              style={{ clipPath: "polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%)" }}
+              className="h-80 w-full bg-gradient-to-br from-muted to-muted-foreground/20"
+              style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
             />
           )}
 
@@ -317,9 +317,9 @@ function PublicProfile() {
         </header>
 
         {/* Logo + name */}
-        <section className="relative z-10 -mt-16 px-4 pb-2">
+        <section className="relative z-10 -mt-20 px-4 pb-2">
           <div className="flex flex-col items-center pt-3">
-            <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
+            <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-background bg-black shadow-lg">
               {profile.secondaryImage ? (
                 <img
                   src={profile.secondaryImage}
