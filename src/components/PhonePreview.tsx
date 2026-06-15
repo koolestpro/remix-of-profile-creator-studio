@@ -46,7 +46,7 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
           </div>
 
           {/* Secondary / logo (in front of the background) */}
-          <div className="relative z-10 -mt-14 flex flex-col items-center px-5 pb-6">
+          <div className="relative z-10 -mt-6 flex flex-col items-center px-5 pb-6">
             <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-background bg-background shadow-lg">
               {profile.secondaryImage ? (
                 <img src={profile.secondaryImage} alt="" className="h-full w-full object-cover" />
