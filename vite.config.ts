@@ -18,37 +18,7 @@ export default defineConfig({
   // Vercel preset, which writes Vercel's Build Output API to `.vercel/output`.
   // Without an explicit `nitro` option, the plugin skips Nitro entirely on
   // Vercel and ships a static SPA with no SSR server → every route 404s.
-  // `routeRules` is valid Nitro config and is forwarded straight to nitro() at
-  // build time, but the wrapper's exposed type surface is intentionally narrow
-  // (preset/output/cloudflare only), so we widen just this option.
   nitro: {
     preset: "vercel",
-
-    // Baseline HTTP security headers applied to every response.
-    routeRules: {
-      "/**": {
-        headers: {
-          "X-Frame-Options": "SAMEORIGIN",
-          "X-Content-Type-Options": "nosniff",
-          "Referrer-Policy": "strict-origin-when-cross-origin",
-          "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-          "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-          // Content-Security-Policy. 'unsafe-inline' is required for the SSR
-          // hydration script and inline style attributes; everything else is
-          // locked to self, Supabase, and image hosts (QR codes / data URLs).
-          "Content-Security-Policy": [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https:",
-            "font-src 'self' data:",
-            "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-            "frame-ancestors 'self'",
-            "base-uri 'self'",
-            "form-action 'self'",
-          ].join("; "),
-        },
-      },
-    },
-  } as { preset: string },
+  },
 });
