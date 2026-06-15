@@ -5,7 +5,7 @@ import { renderIcon } from "@/lib/icon-registry";
 export function PhonePreview({ profile }: { profile: ProfileData }) {
   return (
     <div
-      className="relative mx-auto w-[320px] rounded-[3rem] border-[14px] border-foreground/90 bg-foreground/90 p-0"
+      className="relative mx-auto w-full max-w-[320px] rounded-[3rem] border-[14px] border-foreground/90 bg-foreground/90 p-0"
       style={{ boxShadow: "var(--shadow-phone)" }}
     >
       {/* Notch */}

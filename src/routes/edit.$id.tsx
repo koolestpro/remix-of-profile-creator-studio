@@ -139,7 +139,7 @@ function EditProfile() {
   const url = `${origin}/p/${slug}`;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-canvas">
+    <div className="min-h-screen overflow-x-clip bg-canvas">
       <Toaster richColors position="bottom-center" />
 
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -178,8 +178,17 @@ function EditProfile() {
               disabled={previewing || saving}
               onClick={async () => {
                 // Open the tab synchronously (inside the click) so the browser
-                // doesn't block it as a pop-up after the async save.
-                const win = window.open("", "_blank", "noopener,noreferrer");
+                // doesn't block it as a pop-up after the async save. Paint a
+                // small loading page instead of leaving the user on about:blank.
+                const win = window.open("", "_blank");
+                if (win) {
+                  win.document.write(
+                    `<!doctype html><meta charset="utf-8"><title>Opening preview…</title>` +
+                      `<body style="margin:0;height:100vh;display:grid;place-items:center;` +
+                      `font-family:system-ui,sans-serif;color:#6b7280;background:#f7f1e1">` +
+                      `Opening preview…</body>`,
+                  );
+                }
                 setPreviewing(true);
                 try {
                   const saved = await saveProfile(id, profile);
@@ -206,7 +215,7 @@ function EditProfile() {
               onClick={handleSave}
               disabled={saving}
               style={{ background: "var(--gradient-primary)" }}
-              className="text-white shadow-md"
+              className="text-white shadow-md transition active:scale-95"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
@@ -220,7 +229,7 @@ function EditProfile() {
       </header>
 
       <main className="mx-auto grid max-w-[1400px] gap-6 px-3 py-6 sm:gap-8 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-4 sm:space-y-6">
+        <div className="min-w-0 space-y-4 sm:space-y-6">
           <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <h2 className="text-base font-semibold text-foreground">Branding</h2>
             <p className="text-xs text-muted-foreground">
@@ -484,7 +493,7 @@ function EditProfile() {
                   size="lg"
                   onClick={handleSave}
                   disabled={saving}
-                  className="h-12 flex-1 bg-white px-6 text-base font-semibold text-foreground shadow-lg transition hover:bg-white/90 md:min-w-[180px] md:flex-none md:px-8"
+                  className="h-12 flex-1 bg-white px-6 text-base font-semibold text-foreground shadow-lg transition hover:bg-white/90 active:scale-95 md:min-w-[180px] md:flex-none md:px-8"
                 >
                   {saving ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -498,7 +507,7 @@ function EditProfile() {
           </section>
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Link2 className="h-3.5 w-3.5" /> Your unique profile URL

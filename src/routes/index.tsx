@@ -368,7 +368,7 @@ function Portal() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-canvas">
+    <div className="min-h-screen overflow-x-clip bg-canvas">
       <Toaster richColors position="bottom-center" />
 
       <header className="border-b border-border bg-background/80 backdrop-blur-xl">
@@ -559,7 +559,7 @@ function Portal() {
                   size="lg"
                   onClick={handleCreate}
                   disabled={creating}
-                  className="h-11 bg-white px-6 font-semibold text-foreground shadow-md transition hover:bg-white/90"
+                  className="h-11 bg-white px-6 font-semibold text-foreground shadow-md transition hover:bg-white/90 active:scale-95"
                 >
                   {creating ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
