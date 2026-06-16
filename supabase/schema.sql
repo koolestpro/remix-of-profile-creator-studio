@@ -35,6 +35,7 @@ create table if not exists public.profiles (
   main_button_url      text not null default '',
   main_button_pdf      text,
   main_button_pdf_name text,
+  pdf_code             text unique,
   links                jsonb not null default '[]'::jsonb,
   show_powered_by      boolean,
   show_menu_button     boolean,
@@ -50,8 +51,13 @@ create index if not exists profiles_folder_idx on public.profiles (folder_id);
 -- Migrate older databases: add newer columns if they're missing.
 alter table public.profiles add column if not exists main_button_pdf      text;
 alter table public.profiles add column if not exists main_button_pdf_name text;
+alter table public.profiles add column if not exists pdf_code             text;
 alter table public.profiles add column if not exists show_powered_by      boolean;
 alter table public.profiles add column if not exists show_menu_button     boolean;
+
+-- Each readable PDF code (e.g. JUICES4LIFE2343) must be unique. Multiple NULLs
+-- are allowed, so profiles without a PDF are unaffected.
+create unique index if not exists profiles_pdf_code_idx on public.profiles (pdf_code);
 
 -- ------------------------------------------------------------
 -- ROW LEVEL SECURITY

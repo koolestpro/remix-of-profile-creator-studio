@@ -79,6 +79,7 @@ interface ProfileRow {
   main_button_url: string;
   main_button_pdf: string | null;
   main_button_pdf_name: string | null;
+  pdf_code: string | null;
   links: LinkItem[] | null;
   paused: boolean;
   scan_count: number;
@@ -113,6 +114,7 @@ function rowToProfile(r: ProfileRow): StoredProfile {
     mainButtonUrl: r.main_button_url,
     mainButtonPdf: r.main_button_pdf ?? undefined,
     mainButtonPdfName: r.main_button_pdf_name ?? undefined,
+    pdfCode: r.pdf_code ?? undefined,
     links: Array.isArray(r.links) ? r.links : [],
     showPoweredBy: r.show_powered_by ?? undefined,
     showMenuButton: r.show_menu_button ?? undefined,
@@ -135,6 +137,7 @@ function profileDataToRow(data: ProfileData) {
     main_button_url: data.mainButtonUrl,
     main_button_pdf: data.mainButtonPdf ?? null,
     main_button_pdf_name: data.mainButtonPdfName ?? null,
+    pdf_code: data.pdfCode ?? null,
     links: data.links,
     show_powered_by: data.showPoweredBy ?? null,
     show_menu_button: data.showMenuButton ?? null,
@@ -775,27 +778,80 @@ export async function uploadImage(profileId: string, file: File): Promise<string
   return data.publicUrl;
 }
 
+/** Strip a name down to the uppercase A–Z0–9 root used in a PDF code.
+ *  "Juices4Life Harlesden" → "JUICES4LIFEHARLESDEN". Empty → "MENU". */
+function pdfCodeRoot(name: string): string {
+  const root = (name || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return root || "MENU";
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * Lightweight fetch for the PDF viewer route — pulls only the two columns it
- * needs (business_name, main_button_pdf) instead of the entire profile row,
- * which previously dragged the heavy image/links columns along for nothing.
+ * Build a unique, readable PDF code like "JUICES4LIFE2343" — the business name
+ * (uppercased, alphanumeric only) plus a random 4-digit number. Each branch gets
+ * a different number automatically, even when the names are identical. Checks the
+ * store for collisions so two profiles never share a code.
+ */
+export async function generateUniquePdfCode(name: string): Promise<string> {
+  const root = pdfCodeRoot(name);
+  const exists = async (code: string): Promise<boolean> => {
+    if (!supabase) {
+      return localListProfiles().some((p) => p.pdfCode === code);
+    }
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("pdf_code", code)
+      .limit(1);
+    if (error) throw error;
+    return !!data?.length;
+  };
+  for (let i = 0; i < 50; i++) {
+    const num = Math.floor(1000 + Math.random() * 9000); // 1000–9999
+    const candidate = `${root}${num}`;
+    if (!(await exists(candidate))) return candidate;
+  }
+  // Extremely unlikely fallback — append a longer timestamp-based suffix.
+  return `${root}${Date.now().toString().slice(-6)}`;
+}
+
+/**
+ * Lightweight fetch for the PDF viewer route. Resolves the URL param against the
+ * readable pdf_code first (e.g. /pdf/JUICES4LIFE2343), then falls back to the
+ * raw profile UUID so any older /pdf/<id> links keep working. Pulls only the two
+ * columns it needs instead of the whole row.
  */
 export async function getProfilePdf(
-  id: string,
+  codeOrId: string,
 ): Promise<{ businessName: string; pdf?: string } | undefined> {
   if (!supabase) {
-    const p = localListProfiles().find((x) => x.id === id);
+    const p = localListProfiles().find((x) => x.pdfCode === codeOrId || x.id === codeOrId);
     return p ? { businessName: p.businessName, pdf: p.mainButtonPdf } : undefined;
   }
-  const { data, error } = await supabase
+
+  const select = "business_name, main_button_pdf";
+  type PdfRow = { business_name: string; main_button_pdf: string | null };
+  const toResult = (data: PdfRow) => ({
+    businessName: data.business_name,
+    pdf: data.main_button_pdf ?? undefined,
+  });
+
+  // 1) Try the readable code.
+  const byCode = await supabase
     .from("profiles")
-    .select("business_name, main_button_pdf")
-    .eq("id", id)
+    .select(select)
+    .eq("pdf_code", codeOrId)
     .maybeSingle();
-  if (error) throw error;
-  if (!data) return undefined;
-  const row = data as { business_name: string; main_button_pdf: string | null };
-  return { businessName: row.business_name, pdf: row.main_button_pdf ?? undefined };
+  if (byCode.error) throw byCode.error;
+  if (byCode.data) return toResult(byCode.data as PdfRow);
+
+  // 2) Fall back to UUID (older links) — only query if it actually looks like one.
+  if (!UUID_RE.test(codeOrId)) return undefined;
+  const byId = await supabase.from("profiles").select(select).eq("id", codeOrId).maybeSingle();
+  if (byId.error) throw byId.error;
+  if (!byId.data) return undefined;
+  return toResult(byId.data as PdfRow);
 }
 
 /** Bump a profile's view counter by one. */

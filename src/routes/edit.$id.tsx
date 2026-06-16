@@ -31,6 +31,7 @@ import {
   slugify,
   uploadPdf,
   uploadImage,
+  generateUniquePdfCode,
 } from "@/lib/profile-store";
 
 export const Route = createFileRoute("/edit/$id")({
@@ -407,13 +408,22 @@ function EditProfile() {
                       const toastId = toast.loading("Uploading PDF…");
                       try {
                         const url = await uploadPdf(id, file);
+                        // Reuse an existing code on re-upload; otherwise mint a
+                        // readable, unique one from the business/QR name, e.g.
+                        // "JUICES4LIFE2343" → /pdf/JUICES4LIFE2343.
+                        const code =
+                          profile.pdfCode ||
+                          (await generateUniquePdfCode(
+                            profile.businessName || profile.profileName,
+                          ));
                         setProfile((p) =>
                           p
                             ? {
                                 ...p,
                                 mainButtonPdf: url,
                                 mainButtonPdfName: file.name,
-                                mainButtonUrl: `${window.location.origin}/pdf/${id}`,
+                                pdfCode: code,
+                                mainButtonUrl: `${window.location.origin}/pdf/${code}`,
                               }
                             : p,
                         );

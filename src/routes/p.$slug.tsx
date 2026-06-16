@@ -344,7 +344,11 @@ function PublicProfile() {
 
             {profile.mainButtonText && (
               <a
-                href={profile.mainButtonPdf ? `/pdf/${profile.id}` : profile.mainButtonUrl || "#"}
+                href={
+                  profile.mainButtonPdf
+                    ? `/pdf/${profile.pdfCode ?? profile.id}`
+                    : profile.mainButtonUrl || "#"
+                }
                 target={profile.mainButtonPdf || profile.mainButtonUrl ? "_blank" : undefined}
                 rel="noopener noreferrer"
                 className="mt-5 block w-full rounded-full px-6 py-4 text-center text-base font-bold text-white shadow-md transition active:scale-[0.98]"

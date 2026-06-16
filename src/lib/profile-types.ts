@@ -22,6 +22,9 @@ export interface ProfileData {
   mainButtonUrl: string;
   mainButtonPdf?: string;
   mainButtonPdfName?: string;
+  /** Readable, unique code used in the public PDF URL, e.g. "JUICES4LIFE2343"
+   *  → /pdf/JUICES4LIFE2343. Generated automatically when a PDF is uploaded. */
+  pdfCode?: string;
   links: LinkItem[];
   showPoweredBy?: boolean;
   showMenuButton?: boolean;
