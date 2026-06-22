@@ -12,6 +12,7 @@ import {
   CopyPlus,
   Folder as FolderIcon,
   FolderPlus,
+  FolderInput,
   Inbox,
   MoreHorizontal,
   X,
@@ -67,6 +68,7 @@ import {
   deleteFolder,
   renameFolder,
   moveProfileToFolder,
+  moveProfilesToFolder,
   FOLDER_COLORS,
   countLocalProfiles,
   localImportDismissed,
@@ -173,9 +175,7 @@ function Portal() {
     }
     if (q) {
       list = list.filter(
-        (p) =>
-          p.profileName.toLowerCase().includes(q) ||
-          p.businessName.toLowerCase().includes(q),
+        (p) => p.profileName.toLowerCase().includes(q) || p.businessName.toLowerCase().includes(q),
       );
     }
     return list;
@@ -189,7 +189,11 @@ function Portal() {
 
   const handleCreate = async () => {
     if (creating) return;
-    const name = newName.trim() || "Untitled Profile";
+    const name = newName.trim();
+    if (!name) {
+      toast.error("Please enter a profile name first.");
+      return;
+    }
     setCreating(true);
     try {
       const p = await createProfile(name);
@@ -203,7 +207,7 @@ function Portal() {
       const msg =
         err instanceof Error
           ? err.message
-          : (err as { message?: string })?.message ?? JSON.stringify(err);
+          : ((err as { message?: string })?.message ?? JSON.stringify(err));
       toast.error(`Couldn't create profile: ${msg}`, { duration: 8000 });
     } finally {
       setCreating(false);
@@ -292,20 +296,34 @@ function Portal() {
     setPendingDeleteFolder(null);
   };
 
-  const handleMoveToFolder = async (
-    profileId: string,
-    folderId: string | null,
-  ) => {
+  const handleMoveToFolder = async (profileId: string, folderId: string | null) => {
     try {
       await moveProfileToFolder(profileId, folderId);
       await refresh();
       const folderName =
         folderId === null
           ? "Uncategorized"
-          : folders.find((f) => f.id === folderId)?.name ?? "folder";
+          : (folders.find((f) => f.id === folderId)?.name ?? "folder");
       toast.success(`Moved to ${folderName}`);
     } catch {
       toast.error("Couldn't move profile.");
+    }
+  };
+
+  const handleBulkMoveToFolder = async (folderId: string | null) => {
+    const ids = selectedIds;
+    if (ids.length === 0) return;
+    try {
+      await moveProfilesToFolder(ids, folderId);
+      await refresh();
+      clearSelection();
+      const folderName =
+        folderId === null
+          ? "Uncategorized"
+          : (folders.find((f) => f.id === folderId)?.name ?? "folder");
+      toast.success(`Moved ${ids.length} profile${ids.length === 1 ? "" : "s"} to ${folderName}`);
+    } catch {
+      toast.error("Couldn't move the selected profiles.");
     }
   };
 
@@ -320,10 +338,8 @@ function Portal() {
 
   const clearSelection = () => setSelected(new Set());
 
-  const allVisibleSelected =
-    filtered.length > 0 && filtered.every((p) => selected.has(p.id));
-  const someVisibleSelected =
-    !allVisibleSelected && filtered.some((p) => selected.has(p.id));
+  const allVisibleSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+  const someVisibleSelected = !allVisibleSelected && filtered.some((p) => selected.has(p.id));
 
   const toggleSelectAll = () => {
     setSelected((prev) => {
@@ -343,8 +359,7 @@ function Portal() {
   );
 
   const allSelectedPaused =
-    selectedIds.length > 0 &&
-    selectedIds.every((id) => profiles.find((p) => p.id === id)?.paused);
+    selectedIds.length > 0 && selectedIds.every((id) => profiles.find((p) => p.id === id)?.paused);
 
   const handleBulkPauseToggle = async () => {
     const newPaused = !allSelectedPaused;
@@ -389,9 +404,7 @@ function Portal() {
               <h1 className="text-base font-semibold leading-tight text-foreground">
                 Link Profile Studio
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Manage all your bio profiles
-              </p>
+              <p className="text-xs text-muted-foreground">Manage all your bio profiles</p>
             </div>
           </div>
           {configured && (
@@ -448,9 +461,7 @@ function Portal() {
                 label="Uncategorized"
                 count={countFor(UNCATEGORIZED)}
               />
-              {folders.length > 0 && (
-                <div className="my-2 border-t border-border" />
-              )}
+              {folders.length > 0 && <div className="my-2 border-t border-border" />}
               {folders.map((f) => (
                 <FolderItem
                   key={f.id}
@@ -500,14 +511,10 @@ function Portal() {
                     className="grid h-4 w-4 place-items-center rounded-full transition hover:scale-110"
                     style={{
                       background: c,
-                      boxShadow: selected
-                        ? `0 0 0 1.5px var(--card), 0 0 0 3px ${c}`
-                        : undefined,
+                      boxShadow: selected ? `0 0 0 1.5px var(--card), 0 0 0 3px ${c}` : undefined,
                     }}
                   >
-                    {selected && (
-                      <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
-                    )}
+                    {selected && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />}
                   </button>
                 );
               })}
@@ -526,8 +533,7 @@ function Portal() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {localCount} profile{localCount === 1 ? "" : "s"} saved on this
-                    device
+                    {localCount} profile{localCount === 1 ? "" : "s"} saved on this device
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Import them into your account so they sync across every device.
@@ -558,9 +564,7 @@ function Portal() {
           >
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">
-                  Create a new profile
-                </h2>
+                <h2 className="text-lg font-semibold text-white">Create a new profile</h2>
                 <p className="text-sm text-white/80">
                   {activeFolder === ALL || activeFolder === UNCATEGORIZED
                     ? "Give your profile a name to get started."
@@ -602,8 +606,7 @@ function Portal() {
                     ? "All profiles"
                     : activeFolder === UNCATEGORIZED
                       ? "Uncategorized"
-                      : folders.find((f) => f.id === activeFolder)?.name ??
-                        "Profiles"}
+                      : (folders.find((f) => f.id === activeFolder)?.name ?? "Profiles")}
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     ({filtered.length})
                   </span>
@@ -636,11 +639,7 @@ function Portal() {
                   <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
                     <Checkbox
                       checked={
-                        allVisibleSelected
-                          ? true
-                          : someVisibleSelected
-                            ? "indeterminate"
-                            : false
+                        allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false
                       }
                       onCheckedChange={toggleSelectAll}
                       aria-label="Select all profiles"
@@ -654,11 +653,34 @@ function Portal() {
                   </label>
                   {selectedIds.length > 0 && (
                     <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleBulkPauseToggle}
-                      >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <FolderInput className="mr-1.5 h-3.5 w-3.5" /> Move to folder
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <DropdownMenuLabel>
+                            Move {selectedIds.length} selected to
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleBulkMoveToFolder(null)}>
+                            <Inbox className="mr-2 h-4 w-4" /> Uncategorized
+                          </DropdownMenuItem>
+                          {folders.map((f) => (
+                            <DropdownMenuItem
+                              key={f.id}
+                              onClick={() => handleBulkMoveToFolder(f.id)}
+                            >
+                              <span
+                                className="mr-2 h-3 w-3 rounded-sm"
+                                style={{ background: f.color }}
+                              />
+                              {f.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button size="sm" variant="outline" onClick={handleBulkPauseToggle}>
                         {allSelectedPaused ? (
                           <>
                             <Play className="mr-1.5 h-3.5 w-3.5" /> Resume
@@ -699,9 +721,7 @@ function Portal() {
                     onDelete={() => handleDelete(p)}
                     onDuplicate={() => handleDuplicate(p)}
                     onCopyUrl={() => handleCopyUrl(p)}
-                    onMoveToFolder={(folderId) =>
-                      handleMoveToFolder(p.id, folderId)
-                    }
+                    onMoveToFolder={(folderId) => handleMoveToFolder(p.id, folderId)}
                   />
                 ))}
               </div>
@@ -710,19 +730,14 @@ function Portal() {
         </div>
       </main>
 
-      <AlertDialog
-        open={!!pendingDelete}
-        onOpenChange={(o) => !o && setPendingDelete(null)}
-      >
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete{" "}
-              <span className="font-medium text-foreground">
-                “{pendingDelete?.profileName}”
-              </span>
-              . This action cannot be undone.
+              <span className="font-medium text-foreground">“{pendingDelete?.profileName}”</span>.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -746,10 +761,8 @@ function Portal() {
             <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
             <AlertDialogDescription>
               Delete folder{" "}
-              <span className="font-medium text-foreground">
-                “{pendingDeleteFolder?.name}”
-              </span>
-              ? Profiles inside will move to Uncategorized.
+              <span className="font-medium text-foreground">“{pendingDeleteFolder?.name}”</span>?
+              Profiles inside will move to Uncategorized.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -764,10 +777,7 @@ function Portal() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={pendingBulkDelete}
-        onOpenChange={(o) => !o && setPendingBulkDelete(false)}
-      >
+      <AlertDialog open={pendingBulkDelete} onOpenChange={(o) => !o && setPendingBulkDelete(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete?</AlertDialogTitle>
@@ -852,7 +862,11 @@ function FolderItem({
           onBlur={commit}
           className="h-6 flex-1 rounded border border-border bg-background px-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
         />
-        <button onClick={commit} title="Save" className="text-muted-foreground hover:text-foreground">
+        <button
+          onClick={commit}
+          title="Save"
+          className="text-muted-foreground hover:text-foreground"
+        >
           <Check className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -867,10 +881,7 @@ function FolderItem({
           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
       }`}
     >
-      <button
-        onClick={onClick}
-        className="flex flex-1 items-center gap-2 truncate text-left"
-      >
+      <button onClick={onClick} className="flex flex-1 items-center gap-2 truncate text-left">
         <span
           className="grid h-5 w-5 shrink-0 place-items-center rounded text-white"
           style={{ background: color }}
@@ -1007,10 +1018,7 @@ function ProfileCard({
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span>Updated {updated}</span>
             <span className="hidden sm:inline">•</span>
-            <span
-              className="inline-flex items-center gap-1"
-              title="Total views"
-            >
+            <span className="inline-flex items-center gap-1" title="Total views">
               <Eye className="h-3.5 w-3.5" />
               {(profile.scanCount ?? 0).toLocaleString()} view
               {(profile.scanCount ?? 0) === 1 ? "" : "s"}
@@ -1030,7 +1038,6 @@ function ProfileCard({
           </div>
         </div>
       </div>
-
 
       <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
         <Button asChild size="sm">
@@ -1058,12 +1065,7 @@ function ProfileCard({
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              className="px-2"
-              title="More options"
-            >
+            <Button size="sm" variant="outline" className="px-2" title="More options">
               <MoreHorizontal className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
@@ -1074,17 +1076,12 @@ function ProfileCard({
             </DropdownMenuItem>
             {folders.map((f) => (
               <DropdownMenuItem key={f.id} onClick={() => onMoveToFolder(f.id)}>
-                <span
-                  className="mr-2 h-3 w-3 rounded-sm"
-                  style={{ background: f.color }}
-                />
+                <span className="mr-2 h-3 w-3 rounded-sm" style={{ background: f.color }} />
                 {f.name}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => window.open(`/p/${slug}`, "_blank")}
-            >
+            <DropdownMenuItem onClick={() => window.open(`/p/${slug}`, "_blank")}>
               <ExternalLink className="mr-2 h-4 w-4" /> Open public URL
             </DropdownMenuItem>
             <DropdownMenuItem

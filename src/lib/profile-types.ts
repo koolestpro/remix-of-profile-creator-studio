@@ -18,6 +18,10 @@ export interface ProfileData {
   businessDescription: string;
   bgColor: string;
   buttonColor: string;
+  /** Color of the business name, tagline and "powered by" text. */
+  textColor: string;
+  /** Color of action text: View Menu button, Share button and link arrows. */
+  actionTextColor: string;
   mainButtonText: string;
   mainButtonUrl: string;
   mainButtonPdf?: string;

@@ -33,6 +33,8 @@ export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
     businessDescription: "",
     bgColor: "#f4ead5",
     buttonColor: "#111111",
+    textColor: "#111111",
+    actionTextColor: "#FFFFFF",
     mainButtonText: "View Menu",
     mainButtonUrl: "",
     links: [],
@@ -75,6 +77,8 @@ interface ProfileRow {
   business_description: string;
   bg_color: string;
   button_color: string;
+  text_color: string | null;
+  action_text_color: string | null;
   main_button_text: string;
   main_button_url: string;
   main_button_pdf: string | null;
@@ -110,6 +114,8 @@ function rowToProfile(r: ProfileRow): StoredProfile {
     businessDescription: r.business_description,
     bgColor: r.bg_color,
     buttonColor: r.button_color,
+    textColor: r.text_color ?? "#111111",
+    actionTextColor: r.action_text_color ?? "#FFFFFF",
     mainButtonText: r.main_button_text,
     mainButtonUrl: r.main_button_url,
     mainButtonPdf: r.main_button_pdf ?? undefined,
@@ -133,6 +139,8 @@ function profileDataToRow(data: ProfileData) {
     business_description: data.businessDescription,
     bg_color: data.bgColor,
     button_color: data.buttonColor,
+    text_color: data.textColor ?? "#111111",
+    action_text_color: data.actionTextColor ?? "#FFFFFF",
     main_button_text: data.mainButtonText,
     main_button_url: data.mainButtonUrl,
     main_button_pdf: data.mainButtonPdf ?? null,
@@ -428,6 +436,28 @@ export async function moveProfileToFolder(
   if (error) throw error;
 }
 
+/** Move many profiles into a folder (or to Uncategorized when folderId=null)
+ *  in a single operation. Used by the dashboard's bulk "Move to folder". */
+export async function moveProfilesToFolder(
+  profileIds: string[],
+  folderId: string | null,
+): Promise<void> {
+  if (profileIds.length === 0) return;
+  if (!supabase) {
+    const ids = new Set(profileIds);
+    const now = Date.now();
+    localWriteProfiles(
+      localListProfiles().map((p) => (ids.has(p.id) ? { ...p, folderId, updatedAt: now } : p)),
+    );
+    return;
+  }
+  const { error } = await supabase
+    .from("profiles")
+    .update({ folder_id: folderId })
+    .in("id", profileIds);
+  if (error) throw error;
+}
+
 // The dashboard cards only need these fields — fetching the heavy image/links
 // columns for the whole list is what made loading slow. The editor and public
 // page still fetch the full row by id/slug.
@@ -603,10 +633,21 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
     const src = all.find((p) => p.id === id);
     if (!src) return undefined;
     const now = Date.now();
+    // Copy the menu PDF too, but give the copy its own unique PDF code +
+    // matching public URL so the two profiles don't share a code.
+    let pdfCode = src.pdfCode;
+    let mainButtonUrl = src.mainButtonUrl;
+    if (src.mainButtonPdf) {
+      pdfCode = await generateUniquePdfCode(src.businessName || `${src.profileName} Copy`);
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      mainButtonUrl = `${origin}/pdf/${pdfCode}`;
+    }
     const copy: StoredProfile = {
       ...src,
       id: crypto.randomUUID(),
       profileName: `${src.profileName} (Copy)`,
+      pdfCode,
+      mainButtonUrl,
       links: src.links.map((l) => ({ ...l, id: crypto.randomUUID() })),
       createdAt: now,
       updatedAt: now,
@@ -619,6 +660,17 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
   if (!src) return undefined;
   const name = `${src.profileName} (Copy)`;
   const slug = await uniqueSlug(slugify(name));
+
+  // If the source has a menu PDF, reuse the hosted file but mint a NEW unique
+  // pdf_code (the DB column is unique) and repoint the redirect URL at it.
+  let pdfCode = src.pdfCode;
+  let mainButtonUrl = src.mainButtonUrl;
+  if (src.mainButtonPdf) {
+    pdfCode = await generateUniquePdfCode(src.businessName || name);
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    mainButtonUrl = `${origin}/pdf/${pdfCode}`;
+  }
+
   const data: ProfileData = {
     profileName: name,
     headerImage: src.headerImage,
@@ -627,9 +679,16 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
     businessDescription: src.businessDescription,
     bgColor: src.bgColor,
     buttonColor: src.buttonColor,
+    textColor: src.textColor,
+    actionTextColor: src.actionTextColor,
     mainButtonText: src.mainButtonText,
-    mainButtonUrl: src.mainButtonUrl,
+    mainButtonUrl,
+    mainButtonPdf: src.mainButtonPdf,
+    mainButtonPdfName: src.mainButtonPdfName,
+    pdfCode,
     links: src.links.map((l) => ({ ...l, id: crypto.randomUUID() })),
+    showPoweredBy: src.showPoweredBy,
+    showMenuButton: src.showMenuButton,
   };
   const { data: row, error } = await supabase
     .from("profiles")
@@ -681,9 +740,12 @@ export async function uploadPdf(profileId: string, file: File): Promise<string> 
     .upload(path, file, { contentType: "application/pdf", upsert: true });
 
   if (uploadError) {
+    const rls = /row-level security|violates|not authorized|policy/i.test(uploadError.message);
     throw new Error(
       `PDF upload failed: ${uploadError.message}. ` +
-        "Make sure you have created a public 'pdfs' bucket in Supabase Storage.",
+        (rls
+          ? "This is a Storage permission issue. Run supabase/migrations/004_storage_policies.sql in the Supabase SQL Editor, and make sure you're still logged in as an admin."
+          : "Make sure a public 'pdfs' bucket exists in Supabase Storage."),
     );
   }
 
@@ -768,9 +830,12 @@ export async function uploadImage(profileId: string, file: File): Promise<string
     .upload(path, compressed, { contentType, upsert: true });
 
   if (uploadError) {
+    const rls = /row-level security|violates|not authorized|policy/i.test(uploadError.message);
     throw new Error(
       `Image upload failed: ${uploadError.message}. ` +
-        "Make sure you have created a public 'images' bucket in Supabase Storage.",
+        (rls
+          ? "This is a Storage permission issue. Run supabase/migrations/004_storage_policies.sql in the Supabase SQL Editor, and make sure you're still logged in as an admin."
+          : "Make sure a public 'images' bucket exists in Supabase Storage."),
     );
   }
 
@@ -941,6 +1006,8 @@ export async function importLocalData(): Promise<{
       businessDescription: p.businessDescription,
       bgColor: p.bgColor,
       buttonColor: p.buttonColor,
+      textColor: p.textColor ?? "#111111",
+      actionTextColor: p.actionTextColor ?? "#FFFFFF",
       mainButtonText: p.mainButtonText,
       mainButtonUrl: p.mainButtonUrl,
       links: p.links,

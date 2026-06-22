@@ -31,6 +31,8 @@ create table if not exists public.profiles (
   business_description text not null default '',
   bg_color             text not null default '#f4ead5',
   button_color         text not null default '#111111',
+  text_color           text not null default '#111111',
+  action_text_color    text not null default '#FFFFFF',
   main_button_text     text not null default '',
   main_button_url      text not null default '',
   main_button_pdf      text,
@@ -54,6 +56,8 @@ alter table public.profiles add column if not exists main_button_pdf_name text;
 alter table public.profiles add column if not exists pdf_code             text;
 alter table public.profiles add column if not exists show_powered_by      boolean;
 alter table public.profiles add column if not exists show_menu_button     boolean;
+alter table public.profiles add column if not exists text_color           text not null default '#111111';
+alter table public.profiles add column if not exists action_text_color    text not null default '#FFFFFF';
 
 -- Each readable PDF code (e.g. JUICES4LIFE2343) must be unique. Multiple NULLs
 -- are allowed, so profiles without a PDF are unaffected.

@@ -251,6 +251,8 @@ function PublicProfile() {
   }
 
   const profile = state.profile;
+  const textColor = profile.textColor ?? "#111111";
+  const actionTextColor = profile.actionTextColor ?? "#FFFFFF";
 
   const handleShare = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -307,8 +309,8 @@ function PublicProfile() {
                 type="button"
                 onClick={handleShare}
                 aria-label="Share profile"
-                className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-md transition active:scale-95"
-                style={{ backgroundColor: profile.buttonColor }}
+                className="flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold shadow-md transition active:scale-95"
+                style={{ backgroundColor: profile.buttonColor, color: actionTextColor }}
               >
                 <Share2 className="h-4 w-4" /> Share
               </button>
@@ -333,11 +335,14 @@ function PublicProfile() {
                 </span>
               )}
             </div>
-            <h1 className="mt-3 text-center text-xl font-bold tracking-tight text-foreground">
+            <h1
+              className="mt-3 text-center text-xl font-bold tracking-tight"
+              style={{ color: textColor }}
+            >
               {profile.businessName || "Business Name"}
             </h1>
             {profile.businessDescription && (
-              <p className="mt-1 text-center text-sm text-muted-foreground">
+              <p className="mt-1 text-center text-sm" style={{ color: textColor, opacity: 0.7 }}>
                 {profile.businessDescription}
               </p>
             )}
@@ -351,8 +356,8 @@ function PublicProfile() {
                 }
                 target={profile.mainButtonPdf || profile.mainButtonUrl ? "_blank" : undefined}
                 rel="noopener noreferrer"
-                className="mt-5 block w-full rounded-full px-6 py-4 text-center text-base font-bold text-white shadow-md transition active:scale-[0.98]"
-                style={{ backgroundColor: profile.buttonColor }}
+                className="mt-5 block w-full rounded-full px-6 py-4 text-center text-base font-bold shadow-md transition active:scale-[0.98]"
+                style={{ backgroundColor: profile.buttonColor, color: actionTextColor }}
               >
                 {profile.mainButtonText}
               </a>
@@ -394,8 +399,8 @@ function PublicProfile() {
                     )}
                   </span>
                   <span
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white opacity-90 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100"
-                    style={{ backgroundColor: profile.buttonColor }}
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-full opacity-90 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100"
+                    style={{ backgroundColor: profile.buttonColor, color: actionTextColor }}
                   >
                     <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
                   </span>
@@ -407,7 +412,10 @@ function PublicProfile() {
           {/* Powered by */}
           {profile.showPoweredBy !== false && (
             <div className="mt-10 flex flex-col items-center gap-1">
-              <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+              <span
+                className="text-[11px] font-medium uppercase tracking-widest"
+                style={{ color: textColor, opacity: 0.7 }}
+              >
                 Powered by
               </span>
               <img

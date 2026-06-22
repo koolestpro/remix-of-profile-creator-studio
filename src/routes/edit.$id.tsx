@@ -24,6 +24,7 @@ import { LinkEditor } from "@/components/LinkEditor";
 import { PhonePreview } from "@/components/PhonePreview";
 import type { ProfileData, LinkItem } from "@/lib/profile-types";
 import { ICON_DEFAULT_TEXT } from "@/lib/icon-registry";
+import { useRequireAuth } from "@/lib/use-require-auth";
 import {
   getProfile,
   saveProfile,
@@ -44,6 +45,9 @@ export const Route = createFileRoute("/edit/$id")({
 function EditProfile() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  // Guard: if Supabase is configured and the session has expired, bounce to
+  // /login instead of letting saves/uploads fail with a cryptic RLS error.
+  const { ready: authReady } = useRequireAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   // Track the saved slug so we can skip the slug uniqueness DB query on saves
   // where the profile name hasn't changed (cuts save time roughly in half).
@@ -78,6 +82,10 @@ function EditProfile() {
       active = false;
     };
   }, [id]);
+
+  if (!authReady) {
+    return <div className="min-h-screen bg-canvas" />;
+  }
 
   if (notFound) {
     return (
@@ -136,6 +144,11 @@ function EditProfile() {
     });
 
   const handleSave = async () => {
+    if (!profile.profileName.trim()) {
+      toast.error("Profile name is required. Please name your QR code design before saving.");
+      document.getElementById("profile-name-input")?.focus();
+      return;
+    }
     setSaving(true);
     try {
       const result = await saveProfile(id, profile, savedSlug);
@@ -215,6 +228,11 @@ function EditProfile() {
               className="hidden md:inline-flex"
               disabled={previewing || saving}
               onClick={async () => {
+                if (!profile.profileName.trim()) {
+                  toast.error("Profile name is required. Please name your QR code design first.");
+                  document.getElementById("profile-name-input")?.focus();
+                  return;
+                }
                 // Open the tab synchronously (inside the click) so the browser
                 // doesn't block it as a pop-up after the async save. Paint a
                 // small loading page instead of leaving the user on about:blank.
@@ -328,6 +346,16 @@ function EditProfile() {
                 label="Button color"
                 value={profile.buttonColor}
                 onChange={(v) => update("buttonColor", v)}
+              />
+              <ColorField
+                label="Text color (name, tagline, powered by)"
+                value={profile.textColor}
+                onChange={(v) => update("textColor", v)}
+              />
+              <ColorField
+                label="Action text color (View Menu & Share)"
+                value={profile.actionTextColor}
+                onChange={(v) => update("actionTextColor", v)}
               />
             </div>
           </section>
@@ -532,16 +560,30 @@ function EditProfile() {
           >
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div className="min-w-0 flex-1 space-y-2">
-                <label className="text-sm font-medium text-white/90">QR Code design name</label>
+                <label htmlFor="profile-name-input" className="text-sm font-medium text-white/90">
+                  QR Code design name <span className="text-white">*</span>
+                </label>
                 <Input
+                  id="profile-name-input"
                   value={profile.profileName}
                   onChange={(e) => update("profileName", e.target.value)}
                   placeholder="e.g. Juices4Life — Harlesden Branch"
-                  className="h-11 border-white/20 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/50"
+                  aria-invalid={!profile.profileName.trim()}
+                  className={`h-11 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/50 ${
+                    profile.profileName.trim()
+                      ? "border-white/20"
+                      : "border-red-300 ring-1 ring-red-300/60"
+                  }`}
                 />
-                <p className="text-xs text-white/70">
-                  This name identifies your QR code design in your dashboard.
-                </p>
+                {profile.profileName.trim() ? (
+                  <p className="text-xs text-white/70">
+                    This name identifies your QR code design in your dashboard.
+                  </p>
+                ) : (
+                  <p className="text-xs font-medium text-red-100">
+                    Profile name is required to save.
+                  </p>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button

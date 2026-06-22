@@ -3,6 +3,8 @@ import { ProfileData } from "@/lib/profile-types";
 import { renderIcon } from "@/lib/icon-registry";
 
 export function PhonePreview({ profile }: { profile: ProfileData }) {
+  const textColor = profile.textColor ?? "#111111";
+  const actionTextColor = profile.actionTextColor ?? "#FFFFFF";
   return (
     <div
       className="relative mx-auto w-full max-w-[320px] rounded-[3rem] border-[14px] border-foreground/90 bg-foreground/90 p-0"
@@ -38,8 +40,8 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
               </button>
             )}
             <button
-              className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white"
-              style={{ backgroundColor: profile.buttonColor }}
+              className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium"
+              style={{ backgroundColor: profile.buttonColor, color: actionTextColor }}
             >
               <Share2 className="h-3 w-3" /> Share
             </button>
@@ -54,18 +56,18 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
                 <span className="text-xs text-muted-foreground">Logo</span>
               )}
             </div>
-            <h2 className="mt-3 text-center text-base font-bold text-foreground">
+            <h2 className="mt-3 text-center text-base font-bold" style={{ color: textColor }}>
               {profile.businessName || "Business Name"}
             </h2>
-            <p className="text-center text-xs text-muted-foreground">
+            <p className="text-center text-xs" style={{ color: textColor, opacity: 0.7 }}>
               {profile.businessDescription || "Business description"}
             </p>
 
             {/* Main button */}
             {profile.mainButtonText && (
               <button
-                className="mt-5 w-full rounded-full py-3 text-sm font-semibold text-white shadow-md"
-                style={{ backgroundColor: profile.buttonColor }}
+                className="mt-5 w-full rounded-full py-3 text-sm font-semibold shadow-md"
+                style={{ backgroundColor: profile.buttonColor, color: actionTextColor }}
               >
                 {profile.mainButtonText}
               </button>
@@ -95,9 +97,9 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
                   </div>
                   <div
                     className="grid h-7 w-7 place-items-center rounded-full"
-                    style={{ backgroundColor: profile.buttonColor }}
+                    style={{ backgroundColor: profile.buttonColor, color: actionTextColor }}
                   >
-                    <ChevronRight className="h-3.5 w-3.5 text-white" />
+                    <ChevronRight className="h-3.5 w-3.5" />
                   </div>
                 </div>
               ))}
@@ -106,7 +108,10 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
             {/* Powered by */}
             {profile.showPoweredBy !== false && (
               <div className="mt-8 flex flex-col items-center gap-1.5 pb-2">
-                <p className="text-[9px] font-semibold tracking-[0.2em] text-foreground/60">
+                <p
+                  className="text-[9px] font-semibold tracking-[0.2em]"
+                  style={{ color: textColor, opacity: 0.6 }}
+                >
                   POWERED BY
                 </p>
                 <img

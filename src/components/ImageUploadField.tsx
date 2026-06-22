@@ -28,6 +28,7 @@ export function ImageUploadField({
 }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const handle = async (f?: File) => {
     if (!f) return;
@@ -69,9 +70,32 @@ export function ImageUploadField({
       </div>
       <div
         onClick={() => !uploading && ref.current?.click()}
-        className={`relative overflow-hidden rounded-lg border-2 border-dashed border-border bg-muted/30 transition hover:border-primary hover:bg-muted/50 ${
-          uploading ? "cursor-wait" : "cursor-pointer"
-        } ${aspect === "wide" ? "aspect-[16/7]" : "aspect-square w-32"}`}
+        onDragOver={(e) => {
+          if (uploading) return;
+          e.preventDefault();
+          if (!dragOver) setDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          if (uploading) return;
+          const file = e.dataTransfer.files?.[0];
+          if (!file) return;
+          if (!file.type.startsWith("image/")) {
+            onError?.("Please drop an image file.");
+            return;
+          }
+          void handle(file);
+        }}
+        className={`relative overflow-hidden rounded-lg border-2 border-dashed bg-muted/30 transition hover:border-primary hover:bg-muted/50 ${
+          dragOver ? "border-primary bg-primary/10 ring-2 ring-primary/40" : "border-border"
+        } ${uploading ? "cursor-wait" : "cursor-pointer"} ${
+          aspect === "wide" ? "aspect-[16/7]" : "aspect-square w-32"
+        }`}
       >
         {uploading ? (
           <div className="grid h-full place-items-center">
@@ -99,6 +123,9 @@ export function ImageUploadField({
             <div className="text-center">
               <Upload className="mx-auto h-5 w-5 text-muted-foreground" />
               <p className="mt-1 text-xs text-muted-foreground">{hint ?? "Click to upload"}</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground/70">
+                or drag &amp; drop an image
+              </p>
             </div>
           </div>
         )}
