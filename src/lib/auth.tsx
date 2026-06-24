@@ -15,7 +15,27 @@ interface AuthState {
   loading: boolean;
   /** False when Supabase keys aren't set yet — auth is effectively off. */
   configured: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  /**
+   * Step 1 of 2FA: verifies the password, signs out immediately, then sends
+   * a 6-digit OTP to the email address.
+   * Returns { needsOtp: true } on success, or { error } on failure.
+   */
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ needsOtp?: boolean; error: string | null }>;
+  /**
+   * Step 2 of 2FA: verifies the 6-digit OTP sent to `email`.
+   * On success Supabase creates the session and the user is signed in.
+   */
+  verifyOtp: (
+    email: string,
+    token: string,
+  ) => Promise<{ error: string | null }>;
+  /**
+   * Re-send a fresh OTP to the given email (e.g. "Resend code" button).
+   */
+  resendOtp: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -48,14 +68,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  /** Sends a one-time password email. Used internally and for "resend". */
+  const _sendOtp = async (email: string) => {
     if (!supabase) return { error: "Supabase is not configured yet." };
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      password,
+      options: {
+        // Don't auto-create accounts — the user must already exist.
+        shouldCreateUser: false,
+      },
     });
     return { error: error ? error.message : null };
   };
+
+  /**
+   * Step 1: validate password, then immediately sign out and fire an OTP.
+   * The caller should proceed to an OTP input screen on { needsOtp: true }.
+   */
+  const signIn = async (email: string, password: string) => {
+    if (!supabase) return { error: "Supabase is not configured yet." };
+
+    // Verify credentials first.
+    const { error: pwError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (pwError) return { error: pwError.message };
+
+    // Password is correct — sign out immediately so the session isn't live
+    // until the second factor (OTP) is also verified.
+    await supabase.auth.signOut({ scope: "local" });
+
+    // Send the 6-digit code to the same email address.
+    const { error: otpError } = await _sendOtp(email);
+    if (otpError) return { error: otpError };
+
+    return { needsOtp: true, error: null };
+  };
+
+  /** Step 2: verify the OTP token. On success, Supabase sets the session. */
+  const verifyOtp = async (email: string, token: string) => {
+    if (!supabase) return { error: "Supabase is not configured yet." };
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: "email",
+    });
+    return { error: error ? error.message : null };
+  };
+
+  /** Re-send a fresh OTP (e.g. "Didn't receive it?" button). */
+  const resendOtp = async (email: string) => _sendOtp(email);
 
   const signOut = async () => {
     if (!supabase) return;
@@ -72,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         configured: isSupabaseConfigured,
         signIn,
+        verifyOtp,
+        resendOtp,
         signOut,
       }}
     >
