@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Lock, Loader2, Mail, RefreshCw, ArrowLeft } from "lucide-react";
+import { Sparkles, Lock, Loader2, Mail, RefreshCw, ArrowLeft, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,7 +14,6 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-// How long (seconds) before the "Resend" button re-enables.
 const RESEND_COOLDOWN = 60;
 
 function LoginPage() {
@@ -26,16 +25,29 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Step 2: OTP ──────────────────────────────────────────────────────────
-  const [step, setStep] = useState<"credentials" | "otp">("credentials");
+  // ── Step 2: inbox / OTP ──────────────────────────────────────────────────
+  const [step, setStep] = useState<"credentials" | "sent">("credentials");
   const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Already signed in → go to dashboard.
+  /**
+   * When true, we're in the middle of a sign-in submission.
+   * We use a ref (not state) so changing it doesn't cause extra renders —
+   * its sole purpose is to stop the "already-signed-in → navigate /" effect
+   * from firing during the brief window where signInWithPassword has created
+   * a temporary session that we immediately sign out of.
+   */
+  const signingInRef = useRef(false);
+
+  // Auto-navigate returning users who are already signed in, but NOT during
+  // an active sign-in flow (signingInRef guards against the brief session
+  // that signInWithPassword creates before we revoke it for 2FA).
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/" });
+    if (!loading && session && !signingInRef.current) {
+      navigate({ to: "/" });
+    }
   }, [session, loading, navigate]);
 
   // Countdown timer for "Resend" button.
@@ -52,26 +64,36 @@ function LoginPage() {
     }, 1000);
   };
 
-  useEffect(() => () => { if (cooldownRef.current) clearInterval(cooldownRef.current); }, []);
+  useEffect(
+    () => () => { if (cooldownRef.current) clearInterval(cooldownRef.current); },
+    [],
+  );
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
+
+    // Block auto-navigation BEFORE the async call so the brief session from
+    // signInWithPassword doesn't cause a premature redirect to "/".
+    signingInRef.current = true;
     setSubmitting(true);
+
     const { needsOtp, error } = await signIn(email, password);
+
     setSubmitting(false);
 
     if (error) {
+      signingInRef.current = false; // re-enable auto-navigation on failure
       toast.error(error);
       return;
     }
 
     if (needsOtp) {
-      setStep("otp");
+      setStep("sent");
       startCooldown();
-      toast.success("Code sent — check your inbox");
+      // Keep signingInRef.current = true until OTP is verified or user goes back.
     }
   };
 
@@ -88,23 +110,22 @@ function LoginPage() {
       return;
     }
 
-    toast.success("Signed in");
+    // OTP verified — navigate manually (don't rely on the useEffect).
+    signingInRef.current = false;
     navigate({ to: "/" });
   };
 
   const handleResend = async () => {
     if (cooldown > 0) return;
     const { error } = await resendOtp(email);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-    toast.success("New code sent");
+    if (error) { toast.error(error); return; }
+    toast.success("New link sent — check your inbox");
     setOtp("");
     startCooldown();
   };
 
   const handleBack = () => {
+    signingInRef.current = false;
     setStep("credentials");
     setOtp("");
     if (cooldownRef.current) clearInterval(cooldownRef.current);
@@ -132,13 +153,13 @@ function LoginPage() {
           <p className="text-sm text-muted-foreground">
             {step === "credentials"
               ? "Sign in to manage your profiles"
-              : "Check your email for a verification code"}
+              : "A verification link has been sent to your inbox"}
           </p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-elegant">
 
-          {/* ── Supabase not connected warning ── */}
+          {/* Supabase not configured */}
           {!configured && (
             <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Supabase isn't connected yet. Add your keys to{" "}
@@ -156,7 +177,7 @@ function LoginPage() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@business.com"
+                  placeholder="info@yourbusiness.com"
                   disabled={!configured || submitting}
                 />
               </div>
@@ -180,32 +201,47 @@ function LoginPage() {
                 style={{ background: "var(--gradient-primary)" }}
               >
                 {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending code…</>
                 ) : (
-                  <>
-                    <Lock className="mr-2 h-4 w-4" /> Continue
-                  </>
+                  <><Lock className="mr-2 h-4 w-4" /> Continue</>
                 )}
               </Button>
             </form>
           )}
 
-          {/* ══════════════════ STEP 2: OTP ══════════════════ */}
-          {step === "otp" && (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
+          {/* ══════════════════ STEP 2: check inbox ══════════════════ */}
+          {step === "sent" && (
+            <div className="space-y-5">
 
-              {/* Email indicator */}
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
-                <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="truncate text-sm text-foreground">{email}</span>
+              {/* Sent confirmation */}
+              <div className="flex flex-col items-center gap-3 py-2 text-center">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200">
+                  <MailCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Check your inbox</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    We sent a sign-in link to
+                  </p>
+                  <div className="mt-1 flex items-center justify-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-medium text-foreground">{email}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Click the link in the email to sign in.
+                  </p>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Verification code
-                </label>
+              {/* Divider */}
+              <div className="flex items-center gap-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">or enter a code</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* OTP input (for when Supabase is set to OTP mode) */}
+              <form onSubmit={handleVerifyOtp} className="space-y-3">
                 <Input
                   type="text"
                   inputMode="numeric"
@@ -217,32 +253,23 @@ function LoginPage() {
                   placeholder="000000"
                   className="text-center text-2xl tracking-[0.5em] font-mono"
                   disabled={verifying}
-                  autoFocus
                 />
-                <p className="text-xs text-muted-foreground">
-                  Enter the 6-digit code we sent to your email.
-                </p>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={verifying || otp.length < 6}
-                className="w-full text-white shadow-md"
-                style={{ background: "var(--gradient-primary)" }}
-              >
-                {verifying ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…
-                  </>
-                ) : (
-                  <>
-                    <Lock className="mr-2 h-4 w-4" /> Confirm & sign in
-                  </>
-                )}
-              </Button>
+                <Button
+                  type="submit"
+                  disabled={verifying || otp.length < 6}
+                  className="w-full text-white shadow-md"
+                  style={{ background: "var(--gradient-primary)" }}
+                >
+                  {verifying ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>
+                  ) : (
+                    <><Lock className="mr-2 h-4 w-4" /> Verify code</>
+                  )}
+                </Button>
+              </form>
 
               {/* Resend + back */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center justify-between">
                 <button
                   type="button"
                   onClick={handleBack}
@@ -250,7 +277,6 @@ function LoginPage() {
                 >
                   <ArrowLeft className="h-3 w-3" /> Back
                 </button>
-
                 <button
                   type="button"
                   onClick={handleResend}
@@ -258,10 +284,10 @@ function LoginPage() {
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <RefreshCw className="h-3 w-3" />
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
+                  {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend link"}
                 </button>
               </div>
-            </form>
+            </div>
           )}
         </div>
 

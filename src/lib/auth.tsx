@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  /** Sends a one-time password email. Used internally and for "resend". */
+  /** Sends a one-time password / magic-link email. Used internally and for "resend". */
   const _sendOtp = async (email: string) => {
     if (!supabase) return { error: "Supabase is not configured yet." };
     const { error } = await supabase.auth.signInWithOtp({
@@ -76,6 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: {
         // Don't auto-create accounts — the user must already exist.
         shouldCreateUser: false,
+        // Use the current origin so the link always points to the right
+        // environment (production vs. localhost) automatically.
+        emailRedirectTo: typeof window !== "undefined"
+          ? window.location.origin
+          : undefined,
       },
     });
     return { error: error ? error.message : null };
