@@ -246,11 +246,11 @@ function LoginPage() {
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  maxLength={6}
+                  maxLength={8}
                   autoComplete="one-time-code"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="000000"
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="00000000"
                   className="text-center text-2xl tracking-[0.5em] font-mono"
                   disabled={verifying}
                 />
