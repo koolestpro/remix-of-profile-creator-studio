@@ -9,6 +9,7 @@ import {
   Sparkles,
   Trash2,
   Copy,
+  ExternalLink,
   Link2,
   ArrowLeft,
   Loader2,
@@ -647,7 +648,9 @@ function EditProfile() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 shrink-0"
+                className="h-8 w-8 shrink-0 p-0"
+                title="Copy public URL"
+                aria-label="Copy public URL"
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(url);
@@ -657,7 +660,17 @@ function EditProfile() {
                   }
                 }}
               >
-                <Copy className="mr-1.5 h-3.5 w-3.5" /> Copy
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 w-8 shrink-0 p-0"
+                title="Open customer view"
+                aria-label="Open customer view"
+                onClick={() => window.open(`/p/${slug}`, "_blank", "noopener,noreferrer")}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>

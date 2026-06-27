@@ -1174,6 +1174,15 @@ function ProfileCard({
           size="sm"
           variant="outline"
           className="px-2"
+          title="Open customer view"
+          onClick={() => window.open(`/p/${slug}`, "_blank", "noopener,noreferrer")}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="px-2"
           title="Duplicate profile"
           onClick={onDuplicate}
         >
