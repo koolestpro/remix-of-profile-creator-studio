@@ -69,6 +69,7 @@ import {
   renameFolder,
   moveProfileToFolder,
   moveProfilesToFolder,
+  saveProfile,
   FOLDER_COLORS,
   countLocalProfiles,
   localImportDismissed,
@@ -294,6 +295,28 @@ function Portal() {
       toast.error("Couldn't delete folder.");
     }
     setPendingDeleteFolder(null);
+  };
+
+  const handleRenameProfile = async (profile: StoredProfile, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast.error("Profile name is required.");
+      return;
+    }
+    if (trimmed === profile.profileName) return;
+
+    try {
+      await saveProfile(profile.id, { ...profile, profileName: trimmed }, profile.slug);
+      await refresh();
+      toast.success("Profile renamed");
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : ((err as { message?: string })?.message ?? JSON.stringify(err));
+      toast.error(`Couldn't rename profile: ${msg}`, { duration: 8000 });
+      throw err;
+    }
   };
 
   const handleMoveToFolder = async (profileId: string, folderId: string | null) => {
@@ -722,6 +745,7 @@ function Portal() {
                     onDuplicate={() => handleDuplicate(p)}
                     onCopyUrl={() => handleCopyUrl(p)}
                     onMoveToFolder={(folderId) => handleMoveToFolder(p.id, folderId)}
+                    onRename={(name) => handleRenameProfile(p, name)}
                   />
                 ))}
               </div>
@@ -922,6 +946,7 @@ function ProfileCard({
   onDuplicate,
   onCopyUrl,
   onMoveToFolder,
+  onRename,
 }: {
   profile: StoredProfile;
   folders: Folder[];
@@ -931,12 +956,20 @@ function ProfileCard({
   onDuplicate: () => void;
   onCopyUrl: () => void;
   onMoveToFolder: (folderId: string | null) => void;
+  onRename: (name: string) => Promise<void>;
 }) {
   const slug = profile.slug ?? slugify(profile.profileName);
   const updated = new Date(profile.updatedAt).toLocaleDateString();
   const currentFolder = folders.find((f) => f.id === profile.folderId);
   const [qrOpen, setQrOpen] = useState(false);
   const [copiedImage, setCopiedImage] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(profile.profileName);
+  const [renaming, setRenaming] = useState(false);
+
+  useEffect(() => {
+    if (!editingName) setNameDraft(profile.profileName);
+  }, [editingName, profile.profileName]);
 
   const qrTarget = `${typeof window !== "undefined" ? window.location.origin : ""}/p/${slug}`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(qrTarget)}`;
@@ -975,6 +1008,31 @@ function ProfileCard({
     }
   };
 
+  const cancelRename = () => {
+    setNameDraft(profile.profileName);
+    setEditingName(false);
+  };
+
+  const submitRename = async () => {
+    const next = nameDraft.trim();
+    if (!next) {
+      toast.error("Profile name is required.");
+      return;
+    }
+    if (next === profile.profileName) {
+      setEditingName(false);
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      await onRename(next);
+      setEditingName(false);
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   return (
     <div
       className={`group flex flex-col gap-3 overflow-hidden rounded-xl border bg-card p-3 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4 sm:pr-4 ${
@@ -999,13 +1057,71 @@ function ProfileCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <Link
-              to="/edit/$id"
-              params={{ id: profile.id }}
-              className="truncate text-sm font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
-            >
-              {profile.profileName}
-            </Link>
+            {editingName ? (
+              <form
+                className="flex min-w-[220px] flex-1 items-center gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void submitRename();
+                }}
+              >
+                <Input
+                  value={nameDraft}
+                  autoFocus
+                  disabled={renaming}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") cancelRename();
+                  }}
+                  className="h-8 text-sm"
+                  aria-label="Profile name"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  variant="ghost"
+                  disabled={renaming}
+                  className="h-8 w-8 p-0"
+                  title="Save profile name"
+                >
+                  {renaming ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={renaming}
+                  onClick={cancelRename}
+                  className="h-8 w-8 p-0"
+                  title="Cancel rename"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </form>
+            ) : (
+              <div className="flex min-w-0 items-center gap-1">
+                <Link
+                  to="/edit/$id"
+                  params={{ id: profile.id }}
+                  className="truncate text-sm font-semibold text-foreground underline-offset-2 hover:text-primary hover:underline"
+                >
+                  {profile.profileName}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setEditingName(true)}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  title="Rename profile"
+                  aria-label={`Rename ${profile.profileName}`}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
             <span className="truncate text-xs text-muted-foreground">
               · {profile.businessName || "—"}
             </span>

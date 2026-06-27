@@ -56,6 +56,7 @@ function EditProfile() {
   const [notFound, setNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
+  const [pdfDragOver, setPdfDragOver] = useState(false);
 
   // Defer the phone preview so rapid keystrokes don't block the input.
   // React will finish the input re-render first, then update the preview.
@@ -188,6 +189,45 @@ function EditProfile() {
 
   const slug = slugify(profile.profileName);
   const url = `${origin}/p/${slug}`;
+
+  const handlePdfUpload = async (file?: File) => {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Please upload a PDF file.");
+      return;
+    }
+
+    const toastId = toast.loading("Uploading PDF…");
+    try {
+      const pdfUrl = await uploadPdf(id, file);
+      // Reuse an existing code on re-upload; otherwise mint a readable, unique
+      // one from the business/QR name, e.g. "JUICES4LIFE2343" → /pdf/JUICES4LIFE2343.
+      const code =
+        profile.pdfCode ||
+        (await generateUniquePdfCode(profile.businessName || profile.profileName));
+      setProfile((p) =>
+        p
+          ? {
+              ...p,
+              mainButtonPdf: pdfUrl,
+              mainButtonPdfName: file.name,
+              pdfCode: code,
+              mainButtonUrl: `${window.location.origin}/pdf/${code}`,
+            }
+          : p,
+      );
+      toast.success("PDF uploaded — click Save to publish", {
+        id: toastId,
+        duration: 3000,
+      });
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : ((err as { message?: string })?.message ?? JSON.stringify(err));
+      toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });
+    }
+  };
 
   return (
     <div className="min-h-screen overflow-x-clip bg-canvas">
@@ -403,13 +443,28 @@ function EditProfile() {
               role="button"
               tabIndex={0}
               onClick={() => document.getElementById("main-pdf-upload")?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (!pdfDragOver) setPdfDragOver(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setPdfDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setPdfDragOver(false);
+                void handlePdfUpload(e.dataTransfer.files?.[0]);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   document.getElementById("main-pdf-upload")?.click();
                 }
               }}
-              className="mt-4 cursor-pointer rounded-lg border-2 border-dashed border-border bg-muted/30 p-4 transition hover:border-primary hover:bg-muted/50"
+              className={`mt-4 cursor-pointer rounded-lg border-2 border-dashed bg-muted/30 p-4 transition hover:border-primary hover:bg-muted/50 ${
+                pdfDragOver ? "border-primary bg-primary/10 ring-2 ring-primary/40" : "border-border"
+              }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -417,7 +472,8 @@ function EditProfile() {
                     {profile.mainButtonPdf ? "Replace PDF (menu)" : "Click to upload a PDF (menu)"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    We'll host it at a unique URL and auto-fill the redirect above.
+                    We'll host it at a unique URL and auto-fill the redirect above. Click or drag
+                    and drop a PDF here.
                   </p>
                   {profile.mainButtonPdfName && (
                     <p className="mt-1 text-xs text-foreground">📄 {profile.mainButtonPdfName}</p>
@@ -432,40 +488,7 @@ function EditProfile() {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       e.target.value = "";
-                      if (!file) return;
-                      const toastId = toast.loading("Uploading PDF…");
-                      try {
-                        const url = await uploadPdf(id, file);
-                        // Reuse an existing code on re-upload; otherwise mint a
-                        // readable, unique one from the business/QR name, e.g.
-                        // "JUICES4LIFE2343" → /pdf/JUICES4LIFE2343.
-                        const code =
-                          profile.pdfCode ||
-                          (await generateUniquePdfCode(
-                            profile.businessName || profile.profileName,
-                          ));
-                        setProfile((p) =>
-                          p
-                            ? {
-                                ...p,
-                                mainButtonPdf: url,
-                                mainButtonPdfName: file.name,
-                                pdfCode: code,
-                                mainButtonUrl: `${window.location.origin}/pdf/${code}`,
-                              }
-                            : p,
-                        );
-                        toast.success("PDF uploaded — click Save to publish", {
-                          id: toastId,
-                          duration: 3000,
-                        });
-                      } catch (err) {
-                        const msg =
-                          err instanceof Error
-                            ? err.message
-                            : ((err as { message?: string })?.message ?? JSON.stringify(err));
-                        toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });
-                      }
+                      await handlePdfUpload(file);
                     }}
                   />
                   {profile.mainButtonPdf && (
