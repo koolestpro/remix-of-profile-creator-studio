@@ -328,6 +328,7 @@ function PublicProfile() {
                   alt={profile.businessName}
                   loading="lazy"
                   className="h-full w-full object-cover"
+                  style={{ transform: `scale(${(profile.secondaryImageZoom ?? 100) / 100})` }}
                 />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-sm font-medium text-white/70">
@@ -419,7 +420,11 @@ function PublicProfile() {
                 Powered by
               </span>
               <img
-                src="/tap-and-rate-transparent.png"
+                src={
+                  profile.poweredByLogo === "white"
+                    ? "/tapandrate-logo-white.png"
+                    : "/tap-and-rate-transparent.png"
+                }
                 alt="Tapandrate"
                 className="h-48 w-auto object-contain -mt-16"
               />

@@ -14,6 +14,9 @@ export interface ProfileData {
   profileName: string;
   headerImage?: string;
   secondaryImage?: string;
+  /** Zoom level applied to the secondary image/logo, as a percentage (100 = fit,
+   *  larger = zoomed in). Defaults to 100 when unset. */
+  secondaryImageZoom?: number;
   businessName: string;
   businessDescription: string;
   bgColor: string;
@@ -31,5 +34,10 @@ export interface ProfileData {
   pdfCode?: string;
   links: LinkItem[];
   showPoweredBy?: boolean;
+  /** Which Tap and Rate logo variant to show in the "Powered by" badge.
+   *  "blue" = navy logo (for light backgrounds, the previous/default look).
+   *  "white" = white/yellow logo (for dark backgrounds, where the blue
+   *  version disappears). Defaults to "blue" when unset. */
+  poweredByLogo?: "blue" | "white";
   showMenuButton?: boolean;
 }

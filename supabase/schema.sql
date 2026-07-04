@@ -27,6 +27,7 @@ create table if not exists public.profiles (
   folder_id            uuid references public.folders(id) on delete set null,
   header_image         text,
   secondary_image      text,
+  secondary_image_zoom integer not null default 100,
   business_name        text not null default '',
   business_description text not null default '',
   bg_color             text not null default '#f4ead5',
@@ -40,6 +41,7 @@ create table if not exists public.profiles (
   pdf_code             text unique,
   links                jsonb not null default '[]'::jsonb,
   show_powered_by      boolean,
+  powered_by_logo      text not null default 'blue',
   show_menu_button     boolean,
   paused               boolean not null default false,
   scan_count           integer not null default 0,
@@ -58,6 +60,8 @@ alter table public.profiles add column if not exists show_powered_by      boolea
 alter table public.profiles add column if not exists show_menu_button     boolean;
 alter table public.profiles add column if not exists text_color           text not null default '#111111';
 alter table public.profiles add column if not exists action_text_color    text not null default '#FFFFFF';
+alter table public.profiles add column if not exists powered_by_logo      text not null default 'blue';
+alter table public.profiles add column if not exists secondary_image_zoom integer not null default 100;
 
 -- Each readable PDF code (e.g. JUICES4LIFE2343) must be unique. Multiple NULLs
 -- are allowed, so profiles without a PDF are unaffected.

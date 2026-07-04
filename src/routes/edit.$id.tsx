@@ -17,6 +17,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { ColorField } from "@/components/ColorField";
@@ -188,7 +196,11 @@ function EditProfile() {
     }
   };
 
-  const slug = slugify(profile.profileName);
+  // The public URL is locked to the slug assigned on first save (see
+  // saveProfile) and does NOT change when the name is edited afterwards.
+  // Fall back to a live slugify only for a brand-new, never-saved profile
+  // that doesn't have one yet.
+  const slug = savedSlug || slugify(profile.profileName);
   const url = `${origin}/p/${slug}`;
 
   const handlePdfUpload = async (file?: File) => {
@@ -346,11 +358,36 @@ function EditProfile() {
                 label="Secondary image / logo"
                 hint="Square, 400×400px"
                 value={profile.secondaryImage}
-                onChange={(v) => update("secondaryImage", v)}
+                onChange={(v) => {
+                  update("secondaryImage", v);
+                  // Reset zoom on a fresh upload so it doesn't inherit the
+                  // previous image's crop.
+                  if (v) update("secondaryImageZoom", 100);
+                }}
                 aspect="square"
                 onUpload={(file) => uploadImage(id, file)}
                 onError={(msg) => toast.error(`Image upload failed: ${msg}`, { duration: 8000 })}
               />
+              {profile.secondaryImage && (
+                <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">Logo zoom / crop</label>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {profile.secondaryImageZoom ?? 100}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[profile.secondaryImageZoom ?? 100]}
+                    min={100}
+                    max={200}
+                    step={10}
+                    onValueChange={([v]) => update("secondaryImageZoom", v)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Drag right to zoom in if the logo looks too zoomed out or cut off in the circle.
+                  </p>
+                </div>
+              )}
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -464,7 +501,9 @@ function EditProfile() {
                 }
               }}
               className={`mt-4 cursor-pointer rounded-lg border-2 border-dashed bg-muted/30 p-4 transition hover:border-primary hover:bg-muted/50 ${
-                pdfDragOver ? "border-primary bg-primary/10 ring-2 ring-primary/40" : "border-border"
+                pdfDragOver
+                  ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                  : "border-border"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -561,6 +600,29 @@ function EditProfile() {
                 onCheckedChange={(v) => update("showPoweredBy", v)}
               />
             </div>
+            {profile.showPoweredBy !== false && (
+              <div className="mt-4 flex items-center justify-between gap-4 border-t border-border pt-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground">Badge logo color</label>
+                  <p className="text-xs text-muted-foreground">
+                    Pick blue for light backgrounds, white for dark ones — so the badge is never
+                    invisible.
+                  </p>
+                </div>
+                <Select
+                  value={profile.poweredByLogo ?? "blue"}
+                  onValueChange={(v) => update("poweredByLogo", v as "blue" | "white")}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="blue">Blue logo</SelectItem>
+                    <SelectItem value="white">White logo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">

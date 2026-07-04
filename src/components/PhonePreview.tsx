@@ -51,7 +51,12 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
           <div className="relative z-10 -mt-6 flex flex-col items-center px-5 pb-6">
             <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-background bg-background shadow-lg">
               {profile.secondaryImage ? (
-                <img src={profile.secondaryImage} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={profile.secondaryImage}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  style={{ transform: `scale(${(profile.secondaryImageZoom ?? 100) / 100})` }}
+                />
               ) : (
                 <span className="text-xs text-muted-foreground">Logo</span>
               )}
@@ -115,7 +120,11 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
                   POWERED BY
                 </p>
                 <img
-                  src="/tap-and-rate-transparent.png"
+                  src={
+                    profile.poweredByLogo === "white"
+                      ? "/tapandrate-logo-white.png"
+                      : "/tap-and-rate-transparent.png"
+                  }
                   alt="tapandrate.co.uk"
                   className="h-6 w-auto object-contain"
                 />

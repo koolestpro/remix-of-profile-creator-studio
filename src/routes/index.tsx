@@ -69,7 +69,7 @@ import {
   renameFolder,
   moveProfileToFolder,
   moveProfilesToFolder,
-  saveProfile,
+  renameProfile,
   FOLDER_COLORS,
   countLocalProfiles,
   localImportDismissed,
@@ -306,7 +306,12 @@ function Portal() {
     if (trimmed === profile.profileName) return;
 
     try {
-      await saveProfile(profile.id, { ...profile, profileName: trimmed }, profile.slug);
+      // Use the lightweight rename here, NOT saveProfile: the dashboard list
+      // only holds a partial profile (no links/images/colors — see
+      // listRowToProfile), so saving it in full would overwrite those columns
+      // in the DB with blanks. renameProfile only touches profile_name and
+      // leaves the slug/URL and everything else untouched.
+      await renameProfile(profile.id, trimmed);
       await refresh();
       toast.success("Profile renamed");
     } catch (err) {

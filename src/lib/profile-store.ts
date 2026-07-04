@@ -26,6 +26,7 @@ export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
     profileName: name,
     headerImage: undefined,
     secondaryImage: undefined,
+    secondaryImageZoom: 100,
     // Business name is intentionally left blank on new profiles. It must NOT
     // inherit the QR/profile name — the user fills it in themselves (or leaves
     // it blank). All display sites fall back to "Business Name"/"—" gracefully.
@@ -73,6 +74,7 @@ interface ProfileRow {
   folder_id: string | null;
   header_image: string | null;
   secondary_image: string | null;
+  secondary_image_zoom: number | null;
   business_name: string;
   business_description: string;
   bg_color: string;
@@ -88,6 +90,7 @@ interface ProfileRow {
   paused: boolean;
   scan_count: number;
   show_powered_by: boolean | null;
+  powered_by_logo: string | null;
   show_menu_button: boolean | null;
   created_at: string;
   updated_at: string;
@@ -110,6 +113,7 @@ function rowToProfile(r: ProfileRow): StoredProfile {
     profileName: r.profile_name,
     headerImage: r.header_image ?? undefined,
     secondaryImage: r.secondary_image ?? undefined,
+    secondaryImageZoom: r.secondary_image_zoom ?? 100,
     businessName: r.business_name,
     businessDescription: r.business_description,
     bgColor: r.bg_color,
@@ -123,6 +127,7 @@ function rowToProfile(r: ProfileRow): StoredProfile {
     pdfCode: r.pdf_code ?? undefined,
     links: Array.isArray(r.links) ? r.links : [],
     showPoweredBy: r.show_powered_by ?? undefined,
+    poweredByLogo: r.powered_by_logo === "white" ? "white" : "blue",
     showMenuButton: r.show_menu_button ?? undefined,
     createdAt: new Date(r.created_at).getTime(),
     updatedAt: new Date(r.updated_at).getTime(),
@@ -135,6 +140,7 @@ function profileDataToRow(data: ProfileData) {
     profile_name: data.profileName,
     header_image: data.headerImage ?? null,
     secondary_image: data.secondaryImage ?? null,
+    secondary_image_zoom: data.secondaryImageZoom ?? 100,
     business_name: data.businessName,
     business_description: data.businessDescription,
     bg_color: data.bgColor,
@@ -148,6 +154,7 @@ function profileDataToRow(data: ProfileData) {
     pdf_code: data.pdfCode ?? null,
     links: data.links,
     show_powered_by: data.showPoweredBy ?? null,
+    powered_by_logo: data.poweredByLogo ?? "blue",
     show_menu_button: data.showMenuButton ?? null,
   };
 }
@@ -511,7 +518,9 @@ export async function getProfile(id: string): Promise<StoredProfile | undefined>
 
 export async function getProfileBySlug(slug: string): Promise<StoredProfile | undefined> {
   if (!supabase) {
-    return localListProfiles().find((p) => slugify(p.profileName) === slug);
+    // Prefer each profile's locked-in slug; fall back to a computed one only
+    // for legacy local profiles saved before slugs were persisted.
+    return localListProfiles().find((p) => (p.slug ?? slugify(p.profileName)) === slug);
   }
   const { data, error } = await supabase
     .from("profiles")
@@ -525,14 +534,22 @@ export async function getProfileBySlug(slug: string): Promise<StoredProfile | un
 export async function createProfile(name: string): Promise<StoredProfile> {
   if (!supabase) {
     const now = Date.now();
+    const all = localListProfiles();
+    const existingSlugs = new Set(all.map((p) => p.slug ?? slugify(p.profileName)));
+    let slug = slugify(name) || "profile";
+    let n = 1;
+    while (existingSlugs.has(slug)) {
+      n += 1;
+      slug = `${slugify(name) || "profile"}-${n}`;
+    }
     const profile: StoredProfile = {
       ...createDefaultProfile(name),
       id: crypto.randomUUID(),
+      slug,
       scanCount: 0,
       createdAt: now,
       updatedAt: now,
     };
-    const all = localListProfiles();
     all.push(profile);
     localWriteProfiles(all);
     return profile;
@@ -577,13 +594,13 @@ export async function saveProfile(
     return all[idx];
   }
 
-  // Only run the slug uniqueness check (a full DB round-trip) when the
-  // profile name has actually changed.  In the common case — user tweaks
-  // colours/links without renaming — we reuse the existing slug and cut
-  // saves from 2 sequential Supabase queries down to 1.
-  const newBase = slugify(data.profileName);
-  const slugIsUnchanged = !!existingSlug && new RegExp(`^${newBase}(-\\d+)?$`).test(existingSlug);
-  const slug = slugIsUnchanged ? existingSlug : await uniqueSlug(newBase, id);
+  // The public URL is locked to whatever slug was assigned the first time
+  // the profile was saved (see createProfile). Renaming the profile later
+  // must NOT change the slug — a changed URL breaks QR codes, shared links,
+  // Google/social profiles etc. that already point at the old one. Only
+  // profiles that somehow don't have a slug yet (shouldn't normally happen)
+  // get one generated here.
+  const slug = existingSlug || (await uniqueSlug(slugify(data.profileName), id));
 
   const { data: row, error } = await supabase
     .from("profiles")
@@ -699,6 +716,13 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
   return rowToProfile(row as ProfileRow);
 }
 
+/**
+ * Lightweight rename used by the dashboard's inline "rename" action. Updates
+ * only the profile_name column — it deliberately does NOT touch the slug
+ * (the public URL is locked to its first-save value, see saveProfile) and
+ * does NOT touch links/images/colors/etc, so it can safely be called with
+ * just an id + name, without first loading the full profile row.
+ */
 export async function renameProfile(id: string, name: string): Promise<void> {
   if (!supabase) {
     const all = localListProfiles();
@@ -708,10 +732,9 @@ export async function renameProfile(id: string, name: string): Promise<void> {
     localWriteProfiles(all);
     return;
   }
-  const slug = await uniqueSlug(slugify(name), id);
   const { error } = await supabase
     .from("profiles")
-    .update({ profile_name: name, slug, updated_at: new Date().toISOString() })
+    .update({ profile_name: name, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
 }
