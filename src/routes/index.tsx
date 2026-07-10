@@ -309,8 +309,9 @@ function Portal() {
       // Use the lightweight rename here, NOT saveProfile: the dashboard list
       // only holds a partial profile (no links/images/colors — see
       // listRowToProfile), so saving it in full would overwrite those columns
-      // in the DB with blanks. renameProfile only touches profile_name and
-      // leaves the slug/URL and everything else untouched.
+      // in the DB with blanks. renameProfile only touches profile_name +
+      // slug (the URL is regenerated to match the new name) and leaves
+      // links/images/colors/etc untouched.
       await renameProfile(profile.id, trimmed);
       await refresh();
       toast.success("Profile renamed");

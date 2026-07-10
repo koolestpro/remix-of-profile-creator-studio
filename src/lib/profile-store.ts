@@ -168,7 +168,7 @@ function rowToFolder(r: FolderRow): Folder {
   };
 }
 
-/** Find a slug not already taken by another profile (Supabase only). */
+/** Find a slug not already taken by another profile (Supabase). */
 async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
   if (!supabase) return base || "untitled";
   const root = base || "untitled";
@@ -188,6 +188,23 @@ async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
     candidate = `${root}-${n}`;
   }
   return `${root}-${crypto.randomUUID().slice(0, 6)}`;
+}
+
+/** Find a slug not already taken by another profile (localStorage mode). */
+function uniqueSlugLocal(base: string, excludeId?: string): string {
+  const all = localListProfiles();
+  const root = base || "untitled";
+  const taken = new Set(
+    all.filter((p) => p.id !== excludeId).map((p) => p.slug ?? slugify(p.profileName)),
+  );
+  if (!taken.has(root)) return root;
+  let n = 1;
+  let candidate = root;
+  while (taken.has(candidate)) {
+    n += 1;
+    candidate = `${root}-${n}`;
+  }
+  return candidate;
 }
 
 /* ============================================================
@@ -582,25 +599,30 @@ export async function saveProfile(
   id: string,
   data: ProfileData,
   /** Pass the profile's current slug to skip a redundant uniqueness check
-   *  when the profile name hasn't changed (saves one Supabase round-trip). */
+   *  when the slugified name hasn't actually changed (saves a round-trip). */
   existingSlug?: string,
 ): Promise<StoredProfile | undefined> {
+  const desired = slugify(data.profileName);
+
   if (!supabase) {
     const all = localListProfiles();
     const idx = all.findIndex((p) => p.id === id);
     if (idx === -1) return undefined;
-    all[idx] = { ...all[idx], ...data, updatedAt: Date.now() };
+    const current = existingSlug ?? all[idx].slug ?? slugify(all[idx].profileName);
+    const slug = desired === current ? current : uniqueSlugLocal(desired, id);
+    all[idx] = { ...all[idx], ...data, slug, updatedAt: Date.now() };
     localWriteProfiles(all);
     return all[idx];
   }
 
-  // The public URL is locked to whatever slug was assigned the first time
-  // the profile was saved (see createProfile). Renaming the profile later
-  // must NOT change the slug — a changed URL breaks QR codes, shared links,
-  // Google/social profiles etc. that already point at the old one. Only
-  // profiles that somehow don't have a slug yet (shouldn't normally happen)
-  // get one generated here.
-  const slug = existingSlug || (await uniqueSlug(slugify(data.profileName), id));
+  // The public URL follows the profile name: whenever the name changes, the
+  // slug is regenerated to match (client wants the link to always reflect
+  // the current title, including after renaming a duplicate). If the
+  // slugified name is unchanged from what was last saved, skip the
+  // uniqueness round-trip entirely. See setProfileSlug for manually pointing
+  // a profile at a custom URL, and renameProfile for the dashboard's inline
+  // rename — kept in sync with this same behavior.
+  const slug = existingSlug && desired === existingSlug ? existingSlug : await uniqueSlug(desired, id);
 
   const { data: row, error } = await supabase
     .from("profiles")
@@ -756,25 +778,44 @@ export async function setProfileSlug(id: string, rawSlug: string): Promise<strin
 
 /**
  * Lightweight rename used by the dashboard's inline "rename" action. Updates
- * only the profile_name column — it deliberately does NOT touch the slug
- * (the public URL is locked to its first-save value, see saveProfile) and
- * does NOT touch links/images/colors/etc, so it can safely be called with
- * just an id + name, without first loading the full profile row.
+ * profile_name and — same as saveProfile — regenerates the slug to match
+ * the new name, so the public URL always reflects the current title no
+ * matter where the rename happens (dashboard or editor). Doesn't touch
+ * links/images/colors/etc, so it can safely be called with just an id +
+ * name, without first loading the full profile row. Returns the resulting
+ * slug so callers can update any locally-held copy without a full refetch.
  */
-export async function renameProfile(id: string, name: string): Promise<void> {
+export async function renameProfile(id: string, name: string): Promise<string | undefined> {
   if (!supabase) {
     const all = localListProfiles();
     const idx = all.findIndex((p) => p.id === id);
-    if (idx === -1) return;
-    all[idx] = { ...all[idx], profileName: name, updatedAt: Date.now() };
+    if (idx === -1) return undefined;
+    const current = all[idx].slug ?? slugify(all[idx].profileName);
+    const desired = slugify(name);
+    const slug = desired === current ? current : uniqueSlugLocal(desired, id);
+    all[idx] = { ...all[idx], profileName: name, slug, updatedAt: Date.now() };
     localWriteProfiles(all);
-    return;
+    return slug;
   }
+  // One extra read to get the current slug cheaply, so an unrelated field
+  // edit (e.g. re-saving the same name) doesn't trigger a needless
+  // uniqueness lookup.
+  const { data: current, error: fetchError } = await supabase
+    .from("profiles")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+  if (fetchError) throw fetchError;
+  const currentSlug = (current as { slug: string } | null)?.slug;
+  const desired = slugify(name);
+  const slug =
+    currentSlug && desired === currentSlug ? currentSlug : await uniqueSlug(desired, id);
   const { error } = await supabase
     .from("profiles")
-    .update({ profile_name: name, updated_at: new Date().toISOString() })
+    .update({ profile_name: name, slug, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
+  return slug;
 }
 
 /**
