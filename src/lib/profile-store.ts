@@ -717,6 +717,44 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
 }
 
 /**
+ * Manually point a profile at a different URL slug. Slugs are otherwise
+ * locked after first save (see saveProfile) so renaming a profile never
+ * breaks a QR code or link that's already out in the world. This is the
+ * escape hatch for the opposite case: a client duplicates a profile, renames
+ * the copy before ever sharing it, and wants the URL to match the new name.
+ * Throws if the slug is already taken by a different profile.
+ */
+export async function setProfileSlug(id: string, rawSlug: string): Promise<string> {
+  const clean = slugify(rawSlug);
+  if (!supabase) {
+    const all = localListProfiles();
+    const idx = all.findIndex((p) => p.id === id);
+    if (idx === -1) throw new Error("Profile not found.");
+    const taken = all.some(
+      (p) => p.id !== id && (p.slug ?? slugify(p.profileName)) === clean,
+    );
+    if (taken) throw new Error("That URL is already taken by another profile.");
+    all[idx] = { ...all[idx], slug: clean, updatedAt: Date.now() };
+    localWriteProfiles(all);
+    return clean;
+  }
+  const { data: existing, error: checkError } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("slug", clean)
+    .limit(1);
+  if (checkError) throw checkError;
+  const hit = existing?.[0] as { id: string } | undefined;
+  if (hit && hit.id !== id) throw new Error("That URL is already taken by another profile.");
+  const { error } = await supabase
+    .from("profiles")
+    .update({ slug: clean, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+  return clean;
+}
+
+/**
  * Lightweight rename used by the dashboard's inline "rename" action. Updates
  * only the profile_name column — it deliberately does NOT touch the slug
  * (the public URL is locked to its first-save value, see saveProfile) and

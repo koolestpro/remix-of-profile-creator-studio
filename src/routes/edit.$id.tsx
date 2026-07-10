@@ -13,6 +13,9 @@ import {
   Link2,
   ArrowLeft,
   Loader2,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -42,6 +45,7 @@ import {
   uploadPdf,
   uploadImage,
   generateUniquePdfCode,
+  setProfileSlug,
 } from "@/lib/profile-store";
 
 export const Route = createFileRoute("/edit/$id")({
@@ -66,6 +70,9 @@ function EditProfile() {
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [pdfDragOver, setPdfDragOver] = useState(false);
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [slugDraft, setSlugDraft] = useState("");
+  const [slugSaving, setSlugSaving] = useState(false);
 
   // Defer the phone preview so rapid keystrokes don't block the input.
   // React will finish the input re-render first, then update the preview.
@@ -202,6 +209,36 @@ function EditProfile() {
   // that doesn't have one yet.
   const slug = savedSlug || slugify(profile.profileName);
   const url = `${origin}/p/${slug}`;
+
+  const startEditSlug = () => {
+    setSlugDraft(slug);
+    setEditingSlug(true);
+  };
+
+  const cancelEditSlug = () => {
+    setEditingSlug(false);
+    setSlugDraft("");
+  };
+
+  const confirmEditSlug = async () => {
+    const next = slugify(slugDraft);
+    if (!next || next === slug) {
+      cancelEditSlug();
+      return;
+    }
+    setSlugSaving(true);
+    try {
+      const finalSlug = await setProfileSlug(id, next);
+      setSavedSlug(finalSlug);
+      toast.success("URL updated");
+      setEditingSlug(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Couldn't update the URL.";
+      toast.error(msg);
+    } finally {
+      setSlugSaving(false);
+    }
+  };
 
   const handlePdfUpload = async (file?: File) => {
     if (!file) return;
@@ -703,38 +740,97 @@ function EditProfile() {
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Link2 className="h-3.5 w-3.5" /> Your unique profile URL
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
-              <span className="flex-1 truncate font-mono text-xs text-foreground">
-                {origin ? url : "Loading..."}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 w-8 shrink-0 p-0"
-                title="Copy public URL"
-                aria-label="Copy public URL"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(url);
-                    toast.success("URL copied to clipboard");
-                  } catch {
-                    toast.error("Couldn't copy. Select and copy manually.");
-                  }
-                }}
-              >
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 w-8 shrink-0 p-0"
-                title="Open customer view"
-                aria-label="Open customer view"
-                onClick={() => window.open(`/p/${slug}`, "_blank", "noopener,noreferrer")}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Button>
-            </div>
+            {editingSlug ? (
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+                <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                  {origin}/p/
+                </span>
+                <input
+                  autoFocus
+                  value={slugDraft}
+                  onChange={(e) => setSlugDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") confirmEditSlug();
+                    if (e.key === "Escape") cancelEditSlug();
+                  }}
+                  className="min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none"
+                  placeholder="custom-url"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 shrink-0 p-0"
+                  title="Save URL"
+                  aria-label="Save URL"
+                  disabled={slugSaving}
+                  onClick={confirmEditSlug}
+                >
+                  {slugSaving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 shrink-0 p-0"
+                  title="Cancel"
+                  aria-label="Cancel"
+                  disabled={slugSaving}
+                  onClick={cancelEditSlug}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+                <span className="flex-1 truncate font-mono text-xs text-foreground">
+                  {origin ? url : "Loading..."}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 shrink-0 p-0"
+                  title="Edit URL"
+                  aria-label="Edit URL"
+                  onClick={startEditSlug}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 shrink-0 p-0"
+                  title="Copy public URL"
+                  aria-label="Copy public URL"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      toast.success("URL copied to clipboard");
+                    } catch {
+                      toast.error("Couldn't copy. Select and copy manually.");
+                    }
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 shrink-0 p-0"
+                  title="Open customer view"
+                  aria-label="Open customer view"
+                  onClick={() => window.open(`/p/${slug}`, "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              Renaming this profile won't change the URL — edit it here if you want the link
+              to match a new name. Only do this before sharing the link or printing a QR code.
+            </p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
