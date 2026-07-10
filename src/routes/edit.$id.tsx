@@ -741,47 +741,50 @@ function EditProfile() {
               <Link2 className="h-3.5 w-3.5" /> Your unique profile URL
             </div>
             {editingSlug ? (
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
-                <span className="shrink-0 font-mono text-xs text-muted-foreground">
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+                <div className="mb-1.5 truncate font-mono text-[10px] text-muted-foreground">
                   {origin}/p/
-                </span>
-                <input
-                  autoFocus
-                  value={slugDraft}
-                  onChange={(e) => setSlugDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") confirmEditSlug();
-                    if (e.key === "Escape") cancelEditSlug();
-                  }}
-                  className="min-w-0 flex-1 bg-transparent font-mono text-xs text-foreground outline-none"
-                  placeholder="custom-url"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 shrink-0 p-0"
-                  title="Save URL"
-                  aria-label="Save URL"
-                  disabled={slugSaving}
-                  onClick={confirmEditSlug}
-                >
-                  {slugSaving ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Check className="h-3.5 w-3.5" />
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 shrink-0 p-0"
-                  title="Cancel"
-                  aria-label="Cancel"
-                  disabled={slugSaving}
-                  onClick={cancelEditSlug}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    autoFocus
+                    value={slugDraft}
+                    onChange={(e) => setSlugDraft(e.target.value)}
+                    onFocus={(e) => e.currentTarget.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") confirmEditSlug();
+                      if (e.key === "Escape") cancelEditSlug();
+                    }}
+                    className="h-8 min-w-0 flex-1 bg-background font-mono text-xs"
+                    placeholder="custom-url"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 shrink-0 p-0"
+                    title="Save URL"
+                    aria-label="Save URL"
+                    disabled={slugSaving}
+                    onClick={confirmEditSlug}
+                  >
+                    {slugSaving ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Check className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 shrink-0 p-0"
+                    title="Cancel"
+                    aria-label="Cancel"
+                    disabled={slugSaving}
+                    onClick={cancelEditSlug}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
