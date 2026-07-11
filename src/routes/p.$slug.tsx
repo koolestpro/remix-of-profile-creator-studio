@@ -1,7 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { X, ChevronRight, Share2, Menu } from "lucide-react";
-import { getProfileBySlug, incrementScan, type StoredProfile } from "@/lib/profile-store";
+import {
+  getProfileBySlug,
+  incrementScan,
+  MAIN_BUTTON_CLICK_ID,
+  recordLinkClick,
+  type StoredProfile,
+} from "@/lib/profile-store";
 import { renderIcon } from "@/lib/icon-registry";
 
 export const Route = createFileRoute("/p/$slug")({
@@ -357,6 +363,9 @@ function PublicProfile() {
                 }
                 target={profile.mainButtonPdf || profile.mainButtonUrl ? "_blank" : undefined}
                 rel="noopener noreferrer"
+                onClick={() => {
+                  recordLinkClick(profile, MAIN_BUTTON_CLICK_ID).catch(() => {});
+                }}
                 className="mt-5 block w-full rounded-full px-6 py-4 text-center text-base font-bold shadow-md transition active:scale-[0.98]"
                 style={{ backgroundColor: profile.buttonColor, color: actionTextColor }}
               >
@@ -375,6 +384,9 @@ function PublicProfile() {
                   href={l.url || "#"}
                   target={l.url ? "_blank" : undefined}
                   rel="noopener noreferrer"
+                  onClick={() => {
+                    recordLinkClick(profile, l.id).catch(() => {});
+                  }}
                   className="group relative flex items-center gap-4 overflow-hidden rounded-3xl bg-white px-5 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_16px_32px_-12px_rgba(0,0,0,0.25)] active:scale-[0.985]"
                 >
                   <span className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />

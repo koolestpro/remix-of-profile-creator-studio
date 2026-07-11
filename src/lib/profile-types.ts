@@ -8,6 +8,13 @@ export interface LinkItem {
   title: string;
   subtitle: string;
   url: string;
+  /** Set when icon === "pdf": the uploaded PDF's public URL. */
+  pdfUrl?: string;
+  /** Original uploaded filename, shown in the editor. */
+  pdfName?: string;
+  /** Readable, unique code used in the public PDF URL for this link,
+   *  e.g. "MENU4821" → /pdf/MENU4821. Generated automatically on upload. */
+  pdfCode?: string;
 }
 
 export interface ProfileData {

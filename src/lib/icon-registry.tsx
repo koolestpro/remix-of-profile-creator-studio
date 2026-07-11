@@ -1,4 +1,4 @@
-import { Link2 } from "lucide-react";
+import { FileText, Link2 } from "lucide-react";
 import {
   GoogleIcon,
   InstagramIcon,
@@ -25,9 +25,11 @@ export type IconKey =
   | "googleplay"
   | "loyalty"
   | "whatsapp"
-  | "custom";
+  | "custom"
+  | "pdf";
 
 const CustomIcon = ({ className }: { className?: string }) => <Link2 className={className} />;
+const PdfIcon = ({ className }: { className?: string }) => <FileText className={className} />;
 
 const map: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   google: GoogleIcon,
@@ -42,6 +44,7 @@ const map: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   loyalty: LoyaltyIcon,
   whatsapp: WhatsAppIcon,
   custom: CustomIcon,
+  pdf: PdfIcon,
 };
 
 export const ICON_OPTIONS: { key: IconKey; label: string }[] = [
@@ -57,6 +60,7 @@ export const ICON_OPTIONS: { key: IconKey; label: string }[] = [
   { key: "loyalty", label: "Loyalty Programme" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "custom", label: "Custom" },
+  { key: "pdf", label: "Upload PDF" },
 ];
 
 export const ICON_COLORS: Record<IconKey, string> = {
@@ -72,6 +76,7 @@ export const ICON_COLORS: Record<IconKey, string> = {
   loyalty: "#F59E0B",
   whatsapp: "#25D366",
   custom: "#8B5CF6",
+  pdf: "#DC2626",
 };
 
 /**
@@ -108,6 +113,7 @@ export const ICON_DEFAULT_TEXT: Record<IconKey, { title: string; subtitle: strin
   trustpilot: { title: "Trustpilot", subtitle: "Leave us a review" },
   loyalty: { title: "Loyalty", subtitle: "Join our programme" },
   custom: { title: "", subtitle: "" },
+  pdf: { title: "Menu", subtitle: "View PDF" },
 };
 
 export function renderIcon(key: IconKey, className?: string) {

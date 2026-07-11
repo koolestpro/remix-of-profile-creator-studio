@@ -622,7 +622,8 @@ export async function saveProfile(
   // uniqueness round-trip entirely. See setProfileSlug for manually pointing
   // a profile at a custom URL, and renameProfile for the dashboard's inline
   // rename — kept in sync with this same behavior.
-  const slug = existingSlug && desired === existingSlug ? existingSlug : await uniqueSlug(desired, id);
+  const slug =
+    existingSlug && desired === existingSlug ? existingSlug : await uniqueSlug(desired, id);
 
   const { data: row, error } = await supabase
     .from("profiles")
@@ -681,13 +682,23 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       mainButtonUrl = `${origin}/pdf/${pdfCode}`;
     }
+    // Copy per-link PDFs too, but mint each a fresh unique code (see comment
+    // on the Supabase branch below for why).
+    const links = await Promise.all(
+      src.links.map(async (l) => {
+        if (!l.pdfUrl) return { ...l, id: crypto.randomUUID() };
+        const code = await generateUniquePdfCode(src.businessName || l.title || "link");
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        return { ...l, id: crypto.randomUUID(), pdfCode: code, url: `${origin}/pdf/${code}` };
+      }),
+    );
     const copy: StoredProfile = {
       ...src,
       id: crypto.randomUUID(),
       profileName: `${src.profileName} (Copy)`,
       pdfCode,
       mainButtonUrl,
-      links: src.links.map((l) => ({ ...l, id: crypto.randomUUID() })),
+      links,
       createdAt: now,
       updatedAt: now,
     };
@@ -710,6 +721,18 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
     mainButtonUrl = `${origin}/pdf/${pdfCode}`;
   }
 
+  // Copy per-link PDFs too, but mint each a fresh unique pdf_code rather than
+  // reusing the source's — codes are meant to be unique per hosted document,
+  // and the copy shouldn't silently overwrite the original's public URL.
+  const links = await Promise.all(
+    src.links.map(async (l) => {
+      if (!l.pdfUrl) return { ...l, id: crypto.randomUUID() };
+      const code = await generateUniquePdfCode(src.businessName || l.title || name);
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      return { ...l, id: crypto.randomUUID(), pdfCode: code, url: `${origin}/pdf/${code}` };
+    }),
+  );
+
   const data: ProfileData = {
     profileName: name,
     headerImage: src.headerImage,
@@ -725,7 +748,7 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
     mainButtonPdf: src.mainButtonPdf,
     mainButtonPdfName: src.mainButtonPdfName,
     pdfCode,
-    links: src.links.map((l) => ({ ...l, id: crypto.randomUUID() })),
+    links,
     showPoweredBy: src.showPoweredBy,
     showMenuButton: src.showMenuButton,
   };
@@ -752,9 +775,7 @@ export async function setProfileSlug(id: string, rawSlug: string): Promise<strin
     const all = localListProfiles();
     const idx = all.findIndex((p) => p.id === id);
     if (idx === -1) throw new Error("Profile not found.");
-    const taken = all.some(
-      (p) => p.id !== id && (p.slug ?? slugify(p.profileName)) === clean,
-    );
+    const taken = all.some((p) => p.id !== id && (p.slug ?? slugify(p.profileName)) === clean);
     if (taken) throw new Error("That URL is already taken by another profile.");
     all[idx] = { ...all[idx], slug: clean, updatedAt: Date.now() };
     localWriteProfiles(all);
@@ -808,8 +829,7 @@ export async function renameProfile(id: string, name: string): Promise<string | 
   if (fetchError) throw fetchError;
   const currentSlug = (current as { slug: string } | null)?.slug;
   const desired = slugify(name);
-  const slug =
-    currentSlug && desired === currentSlug ? currentSlug : await uniqueSlug(desired, id);
+  const slug = currentSlug && desired === currentSlug ? currentSlug : await uniqueSlug(desired, id);
   const { error } = await supabase
     .from("profiles")
     .update({ profile_name: name, slug, updated_at: new Date().toISOString() })
@@ -964,7 +984,9 @@ export async function generateUniquePdfCode(name: string): Promise<string> {
   const root = pdfCodeRoot(name);
   const exists = async (code: string): Promise<boolean> => {
     if (!supabase) {
-      return localListProfiles().some((p) => p.pdfCode === code);
+      return localListProfiles().some(
+        (p) => p.pdfCode === code || p.links.some((l) => l.pdfCode === code),
+      );
     }
     const { data, error } = await supabase
       .from("profiles")
@@ -972,7 +994,15 @@ export async function generateUniquePdfCode(name: string): Promise<string> {
       .eq("pdf_code", code)
       .limit(1);
     if (error) throw error;
-    return !!data?.length;
+    if (data?.length) return true;
+    // Also check per-link PDF codes stored inside the JSONB links array.
+    const { data: linkHit, error: linkError } = await supabase
+      .from("profiles")
+      .select("id")
+      .contains("links", [{ pdfCode: code }])
+      .limit(1);
+    if (linkError) throw linkError;
+    return !!linkHit?.length;
   };
   for (let i = 0; i < 50; i++) {
     const num = Math.floor(1000 + Math.random() * 9000); // 1000–9999
@@ -993,8 +1023,15 @@ export async function getProfilePdf(
   codeOrId: string,
 ): Promise<{ businessName: string; pdf?: string } | undefined> {
   if (!supabase) {
-    const p = localListProfiles().find((x) => x.pdfCode === codeOrId || x.id === codeOrId);
-    return p ? { businessName: p.businessName, pdf: p.mainButtonPdf } : undefined;
+    const all = localListProfiles();
+    const main = all.find((x) => x.pdfCode === codeOrId || x.id === codeOrId);
+    if (main) return { businessName: main.businessName, pdf: main.mainButtonPdf };
+    // Also check each profile's per-link PDFs ("Upload PDF" link type).
+    for (const p of all) {
+      const link = p.links.find((l) => l.pdfCode === codeOrId);
+      if (link) return { businessName: p.businessName, pdf: link.pdfUrl };
+    }
+    return undefined;
   }
 
   const select = "business_name, main_button_pdf";
@@ -1004,7 +1041,7 @@ export async function getProfilePdf(
     pdf: data.main_button_pdf ?? undefined,
   });
 
-  // 1) Try the readable code.
+  // 1) Try the readable main-button code.
   const byCode = await supabase
     .from("profiles")
     .select(select)
@@ -1013,7 +1050,22 @@ export async function getProfilePdf(
   if (byCode.error) throw byCode.error;
   if (byCode.data) return toResult(byCode.data as PdfRow);
 
-  // 2) Fall back to UUID (older links) — only query if it actually looks like one.
+  // 2) Try a per-link PDF code stored inside the JSONB links array (the
+  // "Upload PDF" link type — a mini PDF page per link, same as the main
+  // View Menu button but scoped to one link).
+  const byLinkCode = await supabase
+    .from("profiles")
+    .select("business_name, links")
+    .contains("links", [{ pdfCode: codeOrId }])
+    .maybeSingle();
+  if (byLinkCode.error) throw byLinkCode.error;
+  if (byLinkCode.data) {
+    const row = byLinkCode.data as { business_name: string; links: LinkItem[] | null };
+    const link = (row.links ?? []).find((l) => l.pdfCode === codeOrId);
+    if (link) return { businessName: row.business_name, pdf: link.pdfUrl };
+  }
+
+  // 3) Fall back to UUID (older links) — only query if it actually looks like one.
   if (!UUID_RE.test(codeOrId)) return undefined;
   const byId = await supabase.from("profiles").select(select).eq("id", codeOrId).maybeSingle();
   if (byId.error) throw byId.error;
@@ -1038,6 +1090,159 @@ export async function incrementScan(profile: {
   const slug = profile.slug ?? slugify(profile.profileName);
   const { error } = await supabase.rpc("increment_scan", { p_slug: slug });
   if (error) throw error;
+}
+
+/* ============================================================
+ * Link click tracking — time-based click counter for the editor.
+ * Mirrors the scan/view counter above, but per-link and time-filterable
+ * (day/week/month/year presets, custom ranges, and a "compare to" period).
+ * ============================================================ */
+
+const CLICKS_KEY = "lps:clicks:v1";
+/** Cap the local click log so it can't grow unbounded in demo/local mode. */
+const MAX_LOCAL_CLICKS = 5000;
+
+/** Sentinel "link id" used to record taps on the main CTA button (e.g. "View
+ *  Menu"), which isn't part of profile.links. Click tracking treats it just
+ *  like any other link id; the editor UI special-cases it to show a friendly
+ *  "Main Button" row instead of "(deleted link)". */
+export const MAIN_BUTTON_CLICK_ID = "__main_button__";
+
+interface LocalClickEvent {
+  profileId: string;
+  linkId: string;
+  clickedAt: number;
+}
+
+function localListClicks(): LocalClickEvent[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CLICKS_KEY);
+    return raw ? (JSON.parse(raw) as LocalClickEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function localWriteClicks(events: LocalClickEvent[]) {
+  const trimmed =
+    events.length > MAX_LOCAL_CLICKS ? events.slice(events.length - MAX_LOCAL_CLICKS) : events;
+  localStorage.setItem(CLICKS_KEY, JSON.stringify(trimmed));
+}
+
+/** Record a tap on one of a profile's links. Fire-and-forget from the public
+ *  page — failures are swallowed by the caller so a broken counter never
+ *  blocks a visitor from following the link. */
+export async function recordLinkClick(
+  profile: { id: string; slug?: string; profileName: string },
+  linkId: string,
+): Promise<void> {
+  if (!supabase) {
+    const events = localListClicks();
+    events.push({ profileId: profile.id, linkId, clickedAt: Date.now() });
+    localWriteClicks(events);
+    return;
+  }
+  const slug = profile.slug ?? slugify(profile.profileName);
+  const { error } = await supabase.rpc("record_link_click", { p_slug: slug, p_link_id: linkId });
+  if (error) throw error;
+}
+
+export interface ClickSeriesPoint {
+  /** ISO date (yyyy-mm-dd), local day. */
+  date: string;
+  clicks: number;
+}
+
+export interface ClickBreakdownItem {
+  linkId: string;
+  clicks: number;
+}
+
+export interface ClickAnalyticsResult {
+  total: number;
+  series: ClickSeriesPoint[];
+  byLink: ClickBreakdownItem[];
+  /** Total for the comparison period, when one was requested. */
+  compareTotal?: number;
+}
+
+/** Fetch click totals/series for a profile over a date range, optionally
+ *  compared against a second range (e.g. the immediately preceding period,
+ *  or the same period a year ago). `to` is exclusive. */
+export async function getClickAnalytics(
+  profileId: string,
+  range: { from: Date; to: Date },
+  compareRange?: { from: Date; to: Date },
+): Promise<ClickAnalyticsResult> {
+  if (!supabase) {
+    const inRange = (e: LocalClickEvent, r: { from: Date; to: Date }) =>
+      e.clickedAt >= r.from.getTime() && e.clickedAt < r.to.getTime();
+    const all = localListClicks().filter((e) => e.profileId === profileId);
+    const rangeEvents = all.filter((e) => inRange(e, range));
+
+    const byLinkMap = new Map<string, number>();
+    const byDayMap = new Map<string, number>();
+    for (const e of rangeEvents) {
+      byLinkMap.set(e.linkId, (byLinkMap.get(e.linkId) ?? 0) + 1);
+      const day = new Date(e.clickedAt).toISOString().slice(0, 10);
+      byDayMap.set(day, (byDayMap.get(day) ?? 0) + 1);
+    }
+    const series = Array.from(byDayMap.entries())
+      .map(([date, clicks]) => ({ date, clicks }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const byLink = Array.from(byLinkMap.entries())
+      .map(([linkId, clicks]) => ({ linkId, clicks }))
+      .sort((a, b) => b.clicks - a.clicks);
+
+    return {
+      total: rangeEvents.length,
+      series,
+      byLink,
+      compareTotal: compareRange ? all.filter((e) => inRange(e, compareRange)).length : undefined,
+    };
+  }
+
+  const [seriesRes, countsRes] = await Promise.all([
+    supabase.rpc("get_link_click_series", {
+      p_profile_id: profileId,
+      p_from: range.from.toISOString(),
+      p_to: range.to.toISOString(),
+    }),
+    supabase.rpc("get_link_click_counts", {
+      p_profile_id: profileId,
+      p_from: range.from.toISOString(),
+      p_to: range.to.toISOString(),
+    }),
+  ]);
+  if (seriesRes.error) throw seriesRes.error;
+  if (countsRes.error) throw countsRes.error;
+
+  const series = ((seriesRes.data ?? []) as { day: string; clicks: number }[]).map((r) => ({
+    date: r.day,
+    clicks: Number(r.clicks),
+  }));
+  const byLink = ((countsRes.data ?? []) as { link_id: string; clicks: number }[]).map((r) => ({
+    linkId: r.link_id,
+    clicks: Number(r.clicks),
+  }));
+  const total = byLink.reduce((sum, l) => sum + l.clicks, 0);
+
+  let compareTotal: number | undefined;
+  if (compareRange) {
+    const { data, error } = await supabase.rpc("get_link_click_counts", {
+      p_profile_id: profileId,
+      p_from: compareRange.from.toISOString(),
+      p_to: compareRange.to.toISOString(),
+    });
+    if (error) throw error;
+    compareTotal = ((data ?? []) as { link_id: string; clicks: number }[]).reduce(
+      (sum, r) => sum + Number(r.clicks),
+      0,
+    );
+  }
+
+  return { total, series, byLink, compareTotal };
 }
 
 /* ============================================================

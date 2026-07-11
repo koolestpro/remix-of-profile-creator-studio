@@ -67,6 +67,12 @@ alter table public.profiles add column if not exists secondary_image_zoom intege
 -- are allowed, so profiles without a PDF are unaffected.
 create unique index if not exists profiles_pdf_code_idx on public.profiles (pdf_code);
 
+-- Links can each carry their own uploaded PDF (icon "pdf" — "Upload PDF" in
+-- the editor), stored as extra keys (pdfUrl/pdfName/pdfCode) inside the JSONB
+-- links array rather than a separate column. This index makes the public
+-- /pdf/:code page's containment lookup (links @> '[{"pdfCode": "..."}]') fast.
+create index if not exists profiles_links_gin_idx on public.profiles using gin (links jsonb_path_ops);
+
 -- ------------------------------------------------------------
 -- ROW LEVEL SECURITY
 -- ------------------------------------------------------------
@@ -119,6 +125,93 @@ as $$
 $$;
 
 grant execute on function public.increment_scan(text) to anon, authenticated;
+
+-- ------------------------------------------------------------
+-- LINK CLICKS
+-- Time-based click counter for the editor: a link_clicks event table plus
+-- RPCs to record a click and query totals by day/link over any date range
+-- (day/week/month/year presets or a custom range, with a "compare to"
+-- period) — the click-side counterpart to the scan/view counter above.
+-- ------------------------------------------------------------
+create table if not exists public.link_clicks (
+  id         bigint generated always as identity primary key,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  link_id    text not null,
+  clicked_at timestamptz not null default now()
+);
+
+create index if not exists link_clicks_profile_time_idx
+  on public.link_clicks (profile_id, clicked_at);
+
+alter table public.link_clicks enable row level security;
+grant select on public.link_clicks to authenticated;
+
+drop policy if exists "auth read link_clicks" on public.link_clicks;
+create policy "auth read link_clicks" on public.link_clicks
+  for select to authenticated using (true);
+
+create or replace function public.record_link_click(p_slug text, p_link_id text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_profile_id uuid;
+begin
+  select id into v_profile_id from public.profiles where slug = p_slug;
+  if v_profile_id is null then
+    return;
+  end if;
+  insert into public.link_clicks (profile_id, link_id) values (v_profile_id, p_link_id);
+end;
+$$;
+
+grant execute on function public.record_link_click(text, text) to anon, authenticated;
+
+create or replace function public.get_link_click_series(
+  p_profile_id uuid,
+  p_from timestamptz,
+  p_to timestamptz
+)
+returns table(day date, clicks bigint)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select date_trunc('day', clicked_at)::date as day, count(*)::bigint as clicks
+  from public.link_clicks
+  where profile_id = p_profile_id
+    and clicked_at >= p_from
+    and clicked_at < p_to
+  group by 1
+  order by 1;
+$$;
+
+grant execute on function public.get_link_click_series(uuid, timestamptz, timestamptz) to authenticated;
+
+create or replace function public.get_link_click_counts(
+  p_profile_id uuid,
+  p_from timestamptz,
+  p_to timestamptz
+)
+returns table(link_id text, clicks bigint)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select link_id, count(*)::bigint as clicks
+  from public.link_clicks
+  where profile_id = p_profile_id
+    and clicked_at >= p_from
+    and clicked_at < p_to
+  group by 1
+  order by clicks desc;
+$$;
+
+grant execute on function public.get_link_click_counts(uuid, timestamptz, timestamptz) to authenticated;
 
 -- Tell PostgREST to reload its schema cache (fixes stale-cache 500s after
 -- adding columns or changing grants).

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { ClickAnalytics } from "@/components/ClickAnalytics";
 import { ColorField } from "@/components/ColorField";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { LinkEditor } from "@/components/LinkEditor";
@@ -70,6 +71,7 @@ function EditProfile() {
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [pdfDragOver, setPdfDragOver] = useState(false);
+  const [uploadingLinkId, setUploadingLinkId] = useState<string | null>(null);
   const [editingSlug, setEditingSlug] = useState(false);
   const [slugDraft, setSlugDraft] = useState("");
   const [slugSaving, setSlugSaving] = useState(false);
@@ -276,6 +278,44 @@ function EditProfile() {
           ? err.message
           : ((err as { message?: string })?.message ?? JSON.stringify(err));
       toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });
+    }
+  };
+
+  const handleLinkPdfUpload = async (linkId: string, file?: File) => {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Please upload a PDF file.");
+      return;
+    }
+
+    const link = profile.links.find((l) => l.id === linkId);
+    const toastId = toast.loading("Uploading PDF…");
+    setUploadingLinkId(linkId);
+    try {
+      const pdfUrl = await uploadPdf(id, file);
+      // Reuse an existing code on re-upload; otherwise mint a readable, unique
+      // one for this link, e.g. "MENU4821" → /pdf/MENU4821.
+      const code =
+        link?.pdfCode ||
+        (await generateUniquePdfCode(profile.businessName || link?.title || "link"));
+      updateLink(linkId, {
+        pdfUrl,
+        pdfName: file.name,
+        pdfCode: code,
+        url: `${window.location.origin}/pdf/${code}`,
+      });
+      toast.success("PDF uploaded — click Save to publish", {
+        id: toastId,
+        duration: 3000,
+      });
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : ((err as { message?: string })?.message ?? JSON.stringify(err));
+      toast.error(`PDF upload failed: ${msg}`, { id: toastId, duration: 8000 });
+    } finally {
+      setUploadingLinkId(null);
     }
   };
 
@@ -609,6 +649,8 @@ function EditProfile() {
                   onChange={(patch) => updateLink(link.id, patch)}
                   onRemove={() => removeLink(link.id)}
                   onMove={(dir) => moveLink(link.id, dir)}
+                  onUploadPdf={(file) => handleLinkPdfUpload(link.id, file)}
+                  uploadingPdf={uploadingLinkId === link.id}
                 />
               ))}
               {profile.links.length === 0 && (
@@ -733,6 +775,12 @@ function EditProfile() {
               </div>
             </div>
           </section>
+
+          <ClickAnalytics
+            profileId={id}
+            links={profile.links}
+            mainButtonText={profile.mainButtonText}
+          />
         </div>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-20 lg:self-start">
@@ -831,8 +879,8 @@ function EditProfile() {
               </div>
             )}
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-              Renaming this profile won't change the URL — edit it here if you want the link
-              to match a new name. Only do this before sharing the link or printing a QR code.
+              Renaming this profile won't change the URL — edit it here if you want the link to
+              match a new name. Only do this before sharing the link or printing a QR code.
             </p>
           </div>
 

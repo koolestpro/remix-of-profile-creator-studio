@@ -1,4 +1,13 @@
-import { ArrowDown, ArrowUp, GripVertical, Loader2, Search, Trash2, Upload } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  FileText,
+  GripVertical,
+  Loader2,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,10 +30,26 @@ interface Props {
   onChange: (patch: Partial<LinkItem>) => void;
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
+  /** Handles the actual upload (Supabase Storage + pdf_code generation) for
+   *  icon === "pdf" links. Only needed when that icon is selectable. */
+  onUploadPdf?: (file: File) => void;
+  /** True while this link's PDF upload is in flight. */
+  uploadingPdf?: boolean;
 }
 
-export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: Props) {
+export function LinkEditor({
+  link,
+  index,
+  total,
+  onChange,
+  onRemove,
+  onMove,
+  onUploadPdf,
+  uploadingPdf,
+}: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const pdfFileRef = useRef<HTMLInputElement>(null);
+  const [pdfDragOver, setPdfDragOver] = useState(false);
   const [placeQuery, setPlaceQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<PlaceResult[] | null>(null);
   const [placeLoading, setPlaceLoading] = useState(false);
@@ -106,12 +131,16 @@ export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: P
           >
             <ArrowDown className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 text-destructive">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onRemove}
+            className="h-8 w-8 text-destructive"
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
-
 
       <div className="grid gap-3 sm:grid-cols-[auto_1fr]">
         {/* Icon block */}
@@ -188,16 +217,90 @@ export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: P
             value={link.subtitle}
             onChange={(e) => onChange({ subtitle: e.target.value })}
           />
-          <Input
-            placeholder="https://redirect-url.com"
-            value={link.url}
-            onChange={(e) => onChange({ url: e.target.value })}
-          />
+          {link.icon === "pdf" ? (
+            <>
+              <input
+                ref={pdfFileRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) onUploadPdf?.(file);
+                }}
+              />
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => pdfFileRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (!pdfDragOver) setPdfDragOver(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setPdfDragOver(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setPdfDragOver(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) onUploadPdf?.(file);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    pdfFileRef.current?.click();
+                  }
+                }}
+                className={`cursor-pointer rounded-lg border-2 border-dashed bg-muted/30 p-3 transition hover:border-primary hover:bg-muted/50 ${
+                  pdfDragOver
+                    ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                    : "border-border"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                      {uploadingPdf ? (
+                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                      ) : (
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      {link.pdfUrl ? "Replace PDF" : "Click to upload a PDF"}
+                    </p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {link.pdfName ?? "We'll host it and set the link automatically."}
+                    </p>
+                  </div>
+                  {link.pdfUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 shrink-0 px-2 text-xs text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChange({ pdfUrl: undefined, pdfName: undefined, url: "" });
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <Input
+              placeholder="https://redirect-url.com"
+              value={link.url}
+              onChange={(e) => onChange({ url: e.target.value })}
+            />
+          )}
           {link.icon === "google" && (
             <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
-              <p className="mb-2 text-xs font-medium text-foreground">
-                Find your Google Business
-              </p>
+              <p className="mb-2 text-xs font-medium text-foreground">Find your Google Business</p>
               <div className="relative">
                 <Input
                   placeholder="e.g. Juices4Life Harlesden"
@@ -228,9 +331,7 @@ export function LinkEditor({ link, index, total, onChange, onRemove, onMove }: P
                         className="w-full rounded-md border border-border bg-background px-3 py-2 text-left text-xs transition hover:bg-accent"
                       >
                         <div className="font-medium text-foreground">{r.name}</div>
-                        {r.address && (
-                          <div className="text-muted-foreground">{r.address}</div>
-                        )}
+                        {r.address && <div className="text-muted-foreground">{r.address}</div>}
                       </button>
                     </li>
                   ))}
