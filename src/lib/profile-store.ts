@@ -996,10 +996,14 @@ export async function generateUniquePdfCode(name: string): Promise<string> {
     if (error) throw error;
     if (data?.length) return true;
     // Also check per-link PDF codes stored inside the JSONB links array.
+    // NOTE: supabase-js's .contains() mis-serializes a JS array value as a
+    // Postgres array literal ("{[object Object]}") instead of JSON, which
+    // Postgres then rejects with "invalid input syntax for type json". Build
+    // the jsonb containment filter (`cs.`) manually via .filter() instead.
     const { data: linkHit, error: linkError } = await supabase
       .from("profiles")
       .select("id")
-      .contains("links", [{ pdfCode: code }])
+      .filter("links", "cs", JSON.stringify([{ pdfCode: code }]))
       .limit(1);
     if (linkError) throw linkError;
     return !!linkHit?.length;
@@ -1052,11 +1056,12 @@ export async function getProfilePdf(
 
   // 2) Try a per-link PDF code stored inside the JSONB links array (the
   // "Upload PDF" link type — a mini PDF page per link, same as the main
-  // View Menu button but scoped to one link).
+  // View Menu button but scoped to one link). Built via .filter() rather
+  // than .contains() — see note above on why .contains() breaks for jsonb.
   const byLinkCode = await supabase
     .from("profiles")
     .select("business_name, links")
-    .contains("links", [{ pdfCode: codeOrId }])
+    .filter("links", "cs", JSON.stringify([{ pdfCode: codeOrId }]))
     .maybeSingle();
   if (byLinkCode.error) throw byLinkCode.error;
   if (byLinkCode.data) {
