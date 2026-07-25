@@ -929,11 +929,23 @@ async function compressImage(file: File, maxDim = 1280, quality = 0.82): Promise
  * Requires a PUBLIC bucket named "images" in your Supabase project (created by
  * supabase/schema.sql).
  */
+const VIDEO_EXT_BY_TYPE: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+  "video/x-m4v": "m4v",
+  "video/ogg": "ogv",
+};
+
 export async function uploadImage(profileId: string, file: File): Promise<string> {
-  const compressed = await compressImage(file);
+  const isVideo = file.type.startsWith("video/");
+  // Videos aren't run through the image compressor — upload as-is.
+  const compressed = isVideo ? file : await compressImage(file);
 
   if (!supabase) {
-    // localStorage mode: embed the compressed image as base64.
+    // localStorage mode: embed the (compressed, for images) file as base64.
+    // Large videos may exceed localStorage's quota — Supabase Storage is
+    // recommended for video header banners.
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
@@ -943,8 +955,8 @@ export async function uploadImage(profileId: string, file: File): Promise<string
   }
 
   const isSvg = file.type === "image/svg+xml";
-  const ext = isSvg ? "svg" : "jpg";
-  const contentType = isSvg ? "image/svg+xml" : "image/jpeg";
+  const ext = isVideo ? (VIDEO_EXT_BY_TYPE[file.type] ?? "mp4") : isSvg ? "svg" : "jpg";
+  const contentType = isVideo ? file.type : isSvg ? "image/svg+xml" : "image/jpeg";
   const path = `${profileId}/${crypto.randomUUID()}.${ext}`;
 
   const { error: uploadError } = await supabase.storage

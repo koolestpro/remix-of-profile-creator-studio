@@ -424,12 +424,13 @@ function EditProfile() {
             </p>
             <div className="mt-5 space-y-5">
               <ImageUploadField
-                label="Header image"
-                hint="Recommended 1200×525px"
+                label="Header image or video"
+                hint="Recommended 1200×525px, or a short looping video"
                 value={profile.headerImage}
                 onChange={(v) => update("headerImage", v)}
                 onUpload={(file) => uploadImage(id, file)}
-                onError={(msg) => toast.error(`Image upload failed: ${msg}`, { duration: 8000 })}
+                onError={(msg) => toast.error(`Upload failed: ${msg}`, { duration: 8000 })}
+                acceptVideo
               />
               <ImageUploadField
                 label="Secondary image / logo"

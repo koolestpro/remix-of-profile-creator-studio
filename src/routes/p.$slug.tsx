@@ -9,6 +9,7 @@ import {
   type StoredProfile,
 } from "@/lib/profile-store";
 import { renderIcon } from "@/lib/icon-registry";
+import { isVideoSrc } from "@/lib/utils";
 
 export const Route = createFileRoute("/p/$slug")({
   head: () => ({
@@ -138,7 +139,7 @@ function ContactForm({ businessName, onClose }: ContactFormProps) {
           <div className="mt-6 text-center">
             <p className="text-lg font-semibold text-foreground">Message sent!</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              We'll be in touch with {businessName || "you"} shortly.
+              We'll be in touch with you very shortly.
             </p>
           </div>
         ) : (
@@ -285,12 +286,24 @@ function PublicProfile() {
         {/* Header image — V-bottom clip shape */}
         <header className="relative z-0">
           {profile.headerImage ? (
-            <img
-              src={profile.headerImage}
-              alt=""
-              className="h-80 w-full object-cover object-center"
-              style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
-            />
+            isVideoSrc(profile.headerImage) ? (
+              <video
+                src={profile.headerImage}
+                className="h-80 w-full object-cover object-center"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+            ) : (
+              <img
+                src={profile.headerImage}
+                alt=""
+                className="h-80 w-full object-cover object-center"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
+              />
+            )
           ) : (
             <div
               className="h-80 w-full bg-gradient-to-br from-muted to-muted-foreground/20"
@@ -431,15 +444,22 @@ function PublicProfile() {
               >
                 Powered by
               </span>
-              <img
-                src={
-                  profile.poweredByLogo === "white"
-                    ? "/tapandrate-logo-white.png"
-                    : "/tap-and-rate-transparent.png"
-                }
-                alt="Tapandrate"
-                className="h-48 w-auto object-contain -mt-16"
-              />
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                aria-label="Contact us"
+                className="transition active:scale-95"
+              >
+                <img
+                  src={
+                    profile.poweredByLogo === "white"
+                      ? "/tapandrate-logo-white.png"
+                      : "/tap-and-rate-transparent.png"
+                  }
+                  alt="Tapandrate"
+                  className="h-48 w-auto object-contain -mt-16"
+                />
+              </button>
             </div>
           )}
         </section>

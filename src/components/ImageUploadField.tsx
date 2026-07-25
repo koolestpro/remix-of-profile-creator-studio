@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Loader2, Trash2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isVideoSrc } from "@/lib/utils";
 
 interface Props {
   label: string;
@@ -15,6 +16,8 @@ interface Props {
    */
   onUpload?: (file: File) => Promise<string>;
   onError?: (message: string) => void;
+  /** When true, also accepts video files (mp4/webm/mov) alongside images. */
+  acceptVideo?: boolean;
 }
 
 export function ImageUploadField({
@@ -25,6 +28,7 @@ export function ImageUploadField({
   aspect = "wide",
   onUpload,
   onError,
+  acceptVideo = false,
 }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -85,8 +89,9 @@ export function ImageUploadField({
           if (uploading) return;
           const file = e.dataTransfer.files?.[0];
           if (!file) return;
-          if (!file.type.startsWith("image/")) {
-            onError?.("Please drop an image file.");
+          const ok = file.type.startsWith("image/") || (acceptVideo && file.type.startsWith("video/"));
+          if (!ok) {
+            onError?.(acceptVideo ? "Please drop an image or video file." : "Please drop an image file.");
             return;
           }
           void handle(file);
@@ -106,14 +111,25 @@ export function ImageUploadField({
           </div>
         ) : value ? (
           <>
-            <img src={value} alt="" className="h-full w-full object-cover" />
+            {isVideoSrc(value) ? (
+              <video
+                src={value}
+                className="h-full w-full object-cover"
+                muted
+                loop
+                playsInline
+                autoPlay
+              />
+            ) : (
+              <img src={value} alt="" className="h-full w-full object-cover" />
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onChange(undefined);
               }}
               className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-background/90 text-destructive shadow"
-              title="Delete image"
+              title="Delete"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -124,7 +140,7 @@ export function ImageUploadField({
               <Upload className="mx-auto h-5 w-5 text-muted-foreground" />
               <p className="mt-1 text-xs text-muted-foreground">{hint ?? "Click to upload"}</p>
               <p className="mt-0.5 text-[10px] text-muted-foreground/70">
-                or drag &amp; drop an image
+                {acceptVideo ? "or drag & drop an image or video" : "or drag & drop an image"}
               </p>
             </div>
           </div>
@@ -133,7 +149,7 @@ export function ImageUploadField({
       <input
         ref={ref}
         type="file"
-        accept="image/*"
+        accept={acceptVideo ? "image/*,video/*" : "image/*"}
         className="hidden"
         onChange={(e) => handle(e.target.files?.[0])}
       />

@@ -1,6 +1,7 @@
 import { ChevronRight, Menu, Share2 } from "lucide-react";
 import { ProfileData } from "@/lib/profile-types";
 import { renderIcon } from "@/lib/icon-registry";
+import { isVideoSrc } from "@/lib/utils";
 
 export function PhonePreview({ profile }: { profile: ProfileData }) {
   const textColor = profile.textColor ?? "#111111";
@@ -22,12 +23,24 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
           {/* Header / background image (behind everything) */}
           <div className="relative z-0 h-44 w-full overflow-hidden">
             {profile.headerImage ? (
-              <img
-                src={profile.headerImage}
-                alt=""
-                className="h-full w-full object-cover object-center"
-                style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
-              />
+              isVideoSrc(profile.headerImage) ? (
+                <video
+                  src={profile.headerImage}
+                  className="h-full w-full object-cover object-center"
+                  style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={profile.headerImage}
+                  alt=""
+                  className="h-full w-full object-cover object-center"
+                  style={{ clipPath: "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)" }}
+                />
+              )
             ) : (
               <div
                 className="h-full w-full bg-gradient-to-br from-muted to-muted-foreground/20"
