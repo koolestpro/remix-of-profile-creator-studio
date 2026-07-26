@@ -24,10 +24,20 @@ import {
   Download,
   LogOut,
   Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import {
@@ -112,6 +122,8 @@ function Portal() {
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState<string>(FOLDER_COLORS[0]);
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
+  const [usageFilter, setUsageFilter] = useState<"all" | "used" | "unused">("all");
+  const [sortBy, setSortBy] = useState<"recent" | "views-desc" | "views-asc">("recent");
   const [pendingDelete, setPendingDelete] = useState<StoredProfile | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -168,7 +180,7 @@ function Portal() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = [...profiles].sort((a, b) => b.updatedAt - a.updatedAt);
+    let list = [...profiles];
     if (activeFolder === UNCATEGORIZED) {
       list = list.filter((p) => !p.folderId);
     } else if (activeFolder !== ALL) {
@@ -179,8 +191,26 @@ function Portal() {
         (p) => p.profileName.toLowerCase().includes(q) || p.businessName.toLowerCase().includes(q),
       );
     }
+    if (usageFilter === "used") {
+      list = list.filter((p) => (p.scanCount ?? 0) > 0);
+    } else if (usageFilter === "unused") {
+      list = list.filter((p) => (p.scanCount ?? 0) === 0);
+    }
+    if (sortBy === "views-desc") {
+      list.sort((a, b) => (b.scanCount ?? 0) - (a.scanCount ?? 0));
+    } else if (sortBy === "views-asc") {
+      list.sort((a, b) => (a.scanCount ?? 0) - (b.scanCount ?? 0));
+    } else {
+      list.sort((a, b) => b.updatedAt - a.updatedAt);
+    }
     return list;
-  }, [profiles, query, activeFolder]);
+  }, [profiles, query, activeFolder, usageFilter, sortBy]);
+
+  const usedCount = useMemo(
+    () => profiles.filter((p) => (p.scanCount ?? 0) > 0).length,
+    [profiles],
+  );
+  const unusedCount = profiles.length - usedCount;
 
   const countFor = (id: string) => {
     if (id === ALL) return profiles.length;
@@ -641,14 +671,52 @@ function Portal() {
                   </span>
                 </h2>
               </div>
-              <div className="relative w-full sm:w-72">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by profile name…"
-                  className="pl-9"
-                />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="relative w-full sm:w-64">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by profile name…"
+                    className="pl-9"
+                  />
+                </div>
+                <Select
+                  value={usageFilter}
+                  onValueChange={(v) => setUsageFilter(v as "all" | "used" | "unused")}
+                >
+                  <SelectTrigger className="w-full sm:w-[168px]">
+                    <Eye className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="Usage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All profiles ({profiles.length})</SelectItem>
+                    <SelectItem value="used">Used ({usedCount})</SelectItem>
+                    <SelectItem value="unused">Not used ({unusedCount})</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={sortBy}
+                  onValueChange={(v) => setSortBy(v as "recent" | "views-desc" | "views-asc")}
+                >
+                  <SelectTrigger className="w-full sm:w-[188px]">
+                    <ArrowUpDown className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">Recently updated</SelectItem>
+                    <SelectItem value="views-desc">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ArrowDown className="h-3.5 w-3.5" /> Views: high to low
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="views-asc">
+                      <span className="inline-flex items-center gap-1.5">
+                        <ArrowUp className="h-3.5 w-3.5" /> Views: low to high
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
