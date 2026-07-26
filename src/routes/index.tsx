@@ -122,7 +122,6 @@ function Portal() {
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState<string>(FOLDER_COLORS[0]);
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
-  const [usageFilter, setUsageFilter] = useState<"all" | "used" | "unused">("all");
   const [sortBy, setSortBy] = useState<"recent" | "views-desc" | "views-asc">("recent");
   const [pendingDelete, setPendingDelete] = useState<StoredProfile | null>(null);
   const [pendingDeleteFolder, setPendingDeleteFolder] = useState<Folder | null>(null);
@@ -191,11 +190,6 @@ function Portal() {
         (p) => p.profileName.toLowerCase().includes(q) || p.businessName.toLowerCase().includes(q),
       );
     }
-    if (usageFilter === "used") {
-      list = list.filter((p) => (p.scanCount ?? 0) > 0);
-    } else if (usageFilter === "unused") {
-      list = list.filter((p) => (p.scanCount ?? 0) === 0);
-    }
     if (sortBy === "views-desc") {
       list.sort((a, b) => (b.scanCount ?? 0) - (a.scanCount ?? 0));
     } else if (sortBy === "views-asc") {
@@ -204,13 +198,7 @@ function Portal() {
       list.sort((a, b) => b.updatedAt - a.updatedAt);
     }
     return list;
-  }, [profiles, query, activeFolder, usageFilter, sortBy]);
-
-  const usedCount = useMemo(
-    () => profiles.filter((p) => (p.scanCount ?? 0) > 0).length,
-    [profiles],
-  );
-  const unusedCount = profiles.length - usedCount;
+  }, [profiles, query, activeFolder, sortBy]);
 
   const countFor = (id: string) => {
     if (id === ALL) return profiles.length;
@@ -678,23 +666,9 @@ function Portal() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search by profile name…"
-                    className="pl-9"
+                    className="border-2 border-border pl-9 focus-visible:border-primary"
                   />
                 </div>
-                <Select
-                  value={usageFilter}
-                  onValueChange={(v) => setUsageFilter(v as "all" | "used" | "unused")}
-                >
-                  <SelectTrigger className="w-full sm:w-[168px]">
-                    <Eye className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <SelectValue placeholder="Usage" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All profiles ({profiles.length})</SelectItem>
-                    <SelectItem value="used">Used ({usedCount})</SelectItem>
-                    <SelectItem value="unused">Not used ({unusedCount})</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Select
                   value={sortBy}
                   onValueChange={(v) => setSortBy(v as "recent" | "views-desc" | "views-asc")}
