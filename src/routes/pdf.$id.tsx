@@ -1,52 +1,39 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getProfilePdf } from "@/lib/profile-store";
 
+/**
+ * Public menu-PDF short link (e.g. /pdf/JUICES4LIFE2343).
+ *
+ * This used to render a page that embedded the PDF in an <object>/<iframe>.
+ * That only renders inline on desktop browsers with a native PDF plugin —
+ * mobile Chrome/Safari and virtually every in-app webview (Instagram,
+ * WhatsApp, Facebook, TikTok — how most people actually open a QR-code menu
+ * link) can't render an *embedded* PDF that way and instead prompt a
+ * download, which looked like "PDF hosting isn't working."
+ *
+ * The loader below resolves the code server-side and issues a real HTTP
+ * redirect straight to the hosted file. That hands the request to the
+ * phone's native "open PDF" flow instead of trying to embed it, which is
+ * what actually works across mobile browsers and webviews.
+ */
 export const Route = createFileRoute("/pdf/$id")({
-  head: () => ({ meta: [{ title: "Menu" }] }),
-  component: PdfView,
+  loader: async ({ params }) => {
+    const result = await getProfilePdf(params.id).catch(() => undefined);
+    if (result?.pdf) {
+      throw redirect({ href: result.pdf, statusCode: 302 });
+    }
+    return { businessName: result?.businessName };
+  },
+  head: ({ loaderData }) => ({
+    meta: [{ title: loaderData?.businessName || "Menu" }],
+  }),
+  component: PdfMissing,
 });
 
-function PdfView() {
-  const { id } = Route.useParams();
-  const [pdf, setPdf] = useState<string | null>(null);
-  const [missing, setMissing] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    getProfilePdf(id)
-      .then((p) => {
-        if (cancelled) return;
-        if (!p || !p.pdf) {
-          setMissing(true);
-          return;
-        }
-        setPdf(p.pdf);
-        if (p.businessName) document.title = p.businessName;
-      })
-      .catch(() => {
-        if (!cancelled) setMissing(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
-
-  if (missing) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-black p-6 text-center text-white">
-        <p className="text-sm opacity-70">No PDF uploaded for this profile.</p>
-      </div>
-    );
-  }
-
-  if (!pdf) return <div className="min-h-screen bg-black" />;
-
+function PdfMissing() {
   return (
-    <div className="fixed inset-0 bg-black">
-      <object data={`${pdf}#view=FitH&toolbar=0`} type="application/pdf" className="h-full w-full">
-        <iframe src={pdf} title="PDF" className="h-full w-full border-0" />
-      </object>
+    <div className="grid min-h-screen place-items-center bg-black p-6 text-center text-white">
+      <p className="text-sm opacity-70">No PDF uploaded for this profile.</p>
     </div>
   );
 }
