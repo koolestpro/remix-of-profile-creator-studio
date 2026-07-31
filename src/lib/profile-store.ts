@@ -846,20 +846,35 @@ export async function renameProfile(id: string, name: string): Promise<string | 
  *   Supabase dashboard → Storage → New bucket → Name: pdfs → Public: YES
  */
 export async function uploadPdf(profileId: string, file: File): Promise<string> {
+  // Rasterize+recompress oversized PDFs before they ever leave the browser.
+  // See pdf-compress.ts for why this is necessary (duplicate embedded fonts
+  // from merged page-by-page exports, not fixable by generic recompression).
+  // Falls back to the original file untouched if compression doesn't help
+  // or fails for any reason, so this can never block an upload.
+  //
+  // Dynamic import is deliberate: pdf-compress.ts pulls in pdfjs-dist + pdf-lib
+  // (a couple MB of JS). This file is imported by the PUBLIC /p/:slug and
+  // /pdf/:id pages too, which never call uploadPdf — a static import here
+  // would ship those heavy libs to every visitor. The dynamic import puts
+  // them in their own chunk that only loads when someone actually uploads a
+  // PDF in the editor.
+  const { compressPdf } = await import("@/lib/pdf-compress");
+  const compressed = await compressPdf(file);
+
   if (!supabase) {
     // localStorage mode: embed as base64 (small PDFs only)
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(new Error("FileReader failed"));
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressed);
     });
   }
 
   const path = `${profileId}/${crypto.randomUUID()}.pdf`;
   const { error: uploadError } = await supabase.storage
     .from("pdfs")
-    .upload(path, file, { contentType: "application/pdf", upsert: true });
+    .upload(path, compressed, { contentType: "application/pdf", upsert: true });
 
   if (uploadError) {
     const rls = /row-level security|violates|not authorized|policy/i.test(uploadError.message);
