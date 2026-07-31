@@ -100,7 +100,7 @@ export async function compressPdf(file: File): Promise<File> {
     const pdf = await loadingTask.promise;
 
     if (pdf.numPages > MAX_PAGES_TO_COMPRESS) {
-      await pdf.destroy();
+      await loadingTask.destroy();
       return file;
     }
 
@@ -114,7 +114,7 @@ export async function compressPdf(file: File): Promise<File> {
       const outPage = out.addPage([widthPt, heightPt]);
       outPage.drawImage(jpgImage, { x: 0, y: 0, width: widthPt, height: heightPt });
     }
-    await pdf.destroy();
+    await loadingTask.destroy();
 
     const compressedBytes = await out.save();
 
@@ -123,7 +123,14 @@ export async function compressPdf(file: File): Promise<File> {
     // rasterizing would make the file bigger and blurrier for no gain.
     if (compressedBytes.byteLength >= file.size) return file;
 
-    return new File([compressedBytes], file.name, { type: "application/pdf" });
+    // Uint8Array's `buffer` is typed ArrayBufferLike (which admits
+    // SharedArrayBuffer), not assignable to BlobPart's stricter
+    // ArrayBufferView<ArrayBuffer> — it's always a plain ArrayBuffer in
+    // practice here (pdf-lib never backs `save()` with a SharedArrayBuffer),
+    // so the cast is safe.
+    return new File([compressedBytes.buffer as ArrayBuffer], file.name, {
+      type: "application/pdf",
+    });
   } catch (err) {
     // Never let a compression bug block the upload — ship the original.
     console.warn("PDF compression skipped (falling back to original file):", err);

@@ -56,6 +56,22 @@ export const Route = createFileRoute("/edit/$id")({
   component: EditProfile,
 });
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Toast copy for a finished PDF upload — surfaces whether/how much the
+ *  auto-compressor (see pdf-compress.ts) actually shrank the file, so it's
+ *  never a silent, invisible step. Only mentions it when the reduction is
+ *  large enough to matter (small rounding-level differences stay quiet). */
+function pdfUploadToastMessage(originalSize: number, uploadedSize: number): string {
+  const shrunkMeaningfully = uploadedSize < originalSize * 0.97;
+  if (!shrunkMeaningfully) return "PDF uploaded — click Save to publish";
+  const pct = Math.round(100 * (1 - uploadedSize / originalSize));
+  return `PDF uploaded — compressed ${formatFileSize(originalSize)} → ${formatFileSize(uploadedSize)} (${pct}% smaller). Click Save to publish`;
+}
+
 function EditProfile() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -251,7 +267,7 @@ function EditProfile() {
 
     const toastId = toast.loading("Uploading PDF…");
     try {
-      const pdfUrl = await uploadPdf(id, file);
+      const { url: pdfUrl, originalSize, uploadedSize } = await uploadPdf(id, file);
       // Reuse an existing code on re-upload; otherwise mint a readable, unique
       // one from the business/QR name, e.g. "JUICES4LIFE2343" → /pdf/JUICES4LIFE2343.
       const code =
@@ -268,9 +284,9 @@ function EditProfile() {
             }
           : p,
       );
-      toast.success("PDF uploaded — click Save to publish", {
+      toast.success(pdfUploadToastMessage(originalSize, uploadedSize), {
         id: toastId,
-        duration: 3000,
+        duration: 5000,
       });
     } catch (err) {
       const msg =
@@ -292,7 +308,7 @@ function EditProfile() {
     const toastId = toast.loading("Uploading PDF…");
     setUploadingLinkId(linkId);
     try {
-      const pdfUrl = await uploadPdf(id, file);
+      const { url: pdfUrl, originalSize, uploadedSize } = await uploadPdf(id, file);
       // Reuse an existing code on re-upload; otherwise mint a readable, unique
       // one for this link, e.g. "MENU4821" → /pdf/MENU4821.
       const code =
@@ -304,9 +320,9 @@ function EditProfile() {
         pdfCode: code,
         url: `${window.location.origin}/pdf/${code}`,
       });
-      toast.success("PDF uploaded — click Save to publish", {
+      toast.success(pdfUploadToastMessage(originalSize, uploadedSize), {
         id: toastId,
-        duration: 3000,
+        duration: 5000,
       });
     } catch (err) {
       const msg =

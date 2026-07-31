@@ -838,14 +838,25 @@ export async function renameProfile(id: string, name: string): Promise<string | 
   return slug;
 }
 
+export interface UploadPdfResult {
+  url: string;
+  /** Size of the file as originally selected, in bytes. */
+  originalSize: number;
+  /** Size of the file actually uploaded, in bytes — smaller than
+   *  originalSize when auto-compression kicked in, equal otherwise. */
+  uploadedSize: number;
+}
+
 /**
- * Upload a PDF file to Supabase Storage and return its public URL.
- * Falls back to a base64 data-URL in localStorage-only mode.
+ * Upload a PDF file to Supabase Storage and return its public URL, along
+ * with before/after sizes so the caller can surface whether (and how much)
+ * auto-compression helped. Falls back to a base64 data-URL in
+ * localStorage-only mode.
  *
  * Requires a PUBLIC bucket named "pdfs" in your Supabase project:
  *   Supabase dashboard → Storage → New bucket → Name: pdfs → Public: YES
  */
-export async function uploadPdf(profileId: string, file: File): Promise<string> {
+export async function uploadPdf(profileId: string, file: File): Promise<UploadPdfResult> {
   // Rasterize+recompress oversized PDFs before they ever leave the browser.
   // See pdf-compress.ts for why this is necessary (duplicate embedded fonts
   // from merged page-by-page exports, not fixable by generic recompression).
@@ -860,15 +871,18 @@ export async function uploadPdf(profileId: string, file: File): Promise<string> 
   // PDF in the editor.
   const { compressPdf } = await import("@/lib/pdf-compress");
   const compressed = await compressPdf(file);
+  const originalSize = file.size;
+  const uploadedSize = compressed.size;
 
   if (!supabase) {
     // localStorage mode: embed as base64 (small PDFs only)
-    return new Promise<string>((resolve, reject) => {
+    const url = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(new Error("FileReader failed"));
       reader.readAsDataURL(compressed);
     });
+    return { url, originalSize, uploadedSize };
   }
 
   const path = `${profileId}/${crypto.randomUUID()}.pdf`;
@@ -887,7 +901,7 @@ export async function uploadPdf(profileId: string, file: File): Promise<string> 
   }
 
   const { data } = supabase.storage.from("pdfs").getPublicUrl(path);
-  return data.publicUrl;
+  return { url: data.publicUrl, originalSize, uploadedSize };
 }
 
 /**
