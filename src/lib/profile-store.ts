@@ -521,13 +521,17 @@ export async function moveProfilesToFolder(
 // The dashboard cards only need these fields — fetching the heavy image/links
 // columns for the whole list is what made loading slow. The editor and public
 // page still fetch the full row by id/slug.
+// profile_type is included because the dashboard shows a format badge on every
+// card. card_data is deliberately left out — it's only needed by the editor and
+// the public page, both of which fetch the full row.
 const LIST_COLUMNS =
-  "id, slug, profile_name, folder_id, business_name, paused, scan_count, created_at, updated_at";
+  "id, slug, profile_name, profile_type, folder_id, business_name, paused, scan_count, created_at, updated_at";
 
 interface ProfileListRow {
   id: string;
   slug: string;
   profile_name: string;
+  profile_type: string | null;
   folder_id: string | null;
   business_name: string;
   paused: boolean;
@@ -537,10 +541,14 @@ interface ProfileListRow {
 }
 
 function listRowToProfile(r: ProfileListRow): StoredProfile {
+  const profileType: ProfileType = r.profile_type === "card" ? "card" : "landing";
   return {
-    ...createDefaultProfile(r.profile_name),
+    // Pass the type through so the placeholder defaults match the real layout
+    // rather than always filling in landing-page values.
+    ...createDefaultProfile(r.profile_name, profileType),
     id: r.id,
     slug: r.slug,
+    profileType,
     folderId: r.folder_id,
     paused: r.paused,
     scanCount: r.scan_count,
