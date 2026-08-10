@@ -38,6 +38,7 @@ import { ClickAnalytics } from "@/components/ClickAnalytics";
 import { ColorField } from "@/components/ColorField";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { LinkEditor } from "@/components/LinkEditor";
+import { GooglePlaceSearch } from "@/components/GooglePlaceSearch";
 import { PhonePreview } from "@/components/PhonePreview";
 import type {
   ProfileData,
@@ -839,74 +840,81 @@ function EditProfile() {
                   {card.socials.map((social, i) => (
                     <div
                       key={social.id}
-                      className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:flex-row sm:items-center"
+                      className="space-y-3 rounded-lg border border-border bg-muted/20 p-3"
                     >
-                      <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg">
-                        {social.iconUrl ? (
-                          <img
-                            src={social.iconUrl}
-                            alt=""
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          renderIcon(social.icon, "h-full w-full object-contain")
-                        )}
-                      </span>
-                      <Select
-                        value={social.icon}
-                        onValueChange={(v) => updateSocial(social.id, { icon: v as IconKey })}
-                      >
-                        <SelectTrigger className="w-full sm:w-[160px]" aria-label="Platform">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SOCIAL_ICON_OPTIONS.map((o) => (
-                            <SelectItem key={o.key} value={o.key}>
-                              {o.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        value={social.url}
-                        onChange={(e) => updateSocial(social.id, { url: e.target.value })}
-                        placeholder="https://instagram.com/yourhandle"
-                        className="flex-1"
-                      />
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          disabled={i === 0}
-                          onClick={() => moveSocial(social.id, -1)}
-                          title="Move up"
-                          aria-label="Move up"
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg">
+                          {social.iconUrl ? (
+                            <img
+                              src={social.iconUrl}
+                              alt=""
+                              className="h-full w-full object-contain"
+                            />
+                          ) : (
+                            renderIcon(social.icon, "h-full w-full object-contain")
+                          )}
+                        </span>
+                        <Select
+                          value={social.icon}
+                          onValueChange={(v) => updateSocial(social.id, { icon: v as IconKey })}
                         >
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          disabled={i === card.socials.length - 1}
-                          onClick={() => moveSocial(social.id, 1)}
-                          title="Move down"
-                          aria-label="Move down"
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => removeSocial(social.id)}
-                          title="Remove"
-                          aria-label="Remove social link"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Platform">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SOCIAL_ICON_OPTIONS.map((o) => (
+                              <SelectItem key={o.key} value={o.key}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={social.url}
+                          onChange={(e) => updateSocial(social.id, { url: e.target.value })}
+                          placeholder="https://instagram.com/yourhandle"
+                          className="flex-1"
+                        />
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={i === 0}
+                            onClick={() => moveSocial(social.id, -1)}
+                            title="Move up"
+                            aria-label="Move up"
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={i === card.socials.length - 1}
+                            onClick={() => moveSocial(social.id, 1)}
+                            title="Move down"
+                            aria-label="Move down"
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => removeSocial(social.id)}
+                            title="Remove"
+                            aria-label="Remove social link"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
+                      {social.icon === "google" && (
+                        <GooglePlaceSearch
+                          onPick={(reviewUrl) => updateSocial(social.id, { url: reviewUrl })}
+                        />
+                      )}
                     </div>
                   ))}
                   {card.socials.length === 0 && (

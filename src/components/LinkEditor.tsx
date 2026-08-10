@@ -1,14 +1,5 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  FileText,
-  GripVertical,
-  Loader2,
-  Search,
-  Trash2,
-  Upload,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, FileText, GripVertical, Loader2, Trash2, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ICON_OPTIONS, ICON_COLORS, ICON_DEFAULT_TEXT, renderIcon } from "@/lib/icon-registry";
+import {
+  ICON_OPTIONS,
+  ICON_COLORS,
+  ICON_DEFAULT_TEXT,
+  RETIRED_DEFAULT_SUBTITLES,
+  renderIcon,
+} from "@/lib/icon-registry";
 import type { LinkItem, IconKey } from "@/lib/profile-types";
-import { searchGooglePlaces, type PlaceResult } from "@/lib/places.functions";
+import { GooglePlaceSearch } from "@/components/GooglePlaceSearch";
 
 interface Props {
   link: LinkItem;
@@ -50,9 +47,6 @@ export function LinkEditor({
   const fileRef = useRef<HTMLInputElement>(null);
   const pdfFileRef = useRef<HTMLInputElement>(null);
   const [pdfDragOver, setPdfDragOver] = useState(false);
-  const [placeQuery, setPlaceQuery] = useState("");
-  const [placeResults, setPlaceResults] = useState<PlaceResult[] | null>(null);
-  const [placeLoading, setPlaceLoading] = useState(false);
 
   const handleIconUpload = (file?: File) => {
     if (!file) return;
@@ -60,39 +54,6 @@ export function LinkEditor({
     reader.onload = () => onChange({ iconUrl: reader.result as string });
     reader.readAsDataURL(file);
   };
-
-  const runPlaceSearch = async (queryOverride?: string) => {
-    const q = (queryOverride ?? placeQuery).trim();
-    if (!q) {
-      setPlaceResults(null);
-      return;
-    }
-    setPlaceLoading(true);
-    try {
-      const { results } = await searchGooglePlaces({ data: { query: q } });
-      setPlaceResults(results);
-    } catch (err) {
-      console.error("Places search error:", err);
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      toast.error(`Google Places: ${msg}`, { duration: 6000 });
-    } finally {
-      setPlaceLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (link.icon !== "google") return;
-    const q = placeQuery.trim();
-    if (q.length < 2) {
-      setPlaceResults(null);
-      return;
-    }
-    const t = setTimeout(() => {
-      runPlaceSearch(q);
-    }, 350);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placeQuery, link.icon]);
 
   const accent = ICON_COLORS[link.icon] ?? "#6B7280";
 
@@ -184,7 +145,10 @@ export function LinkEditor({
             onValueChange={(v) => {
               const next = v as IconKey;
               const knownTitles = Object.values(ICON_DEFAULT_TEXT).map((d) => d.title);
-              const knownSubs = Object.values(ICON_DEFAULT_TEXT).map((d) => d.subtitle);
+              const knownSubs = [
+                ...Object.values(ICON_DEFAULT_TEXT).map((d) => d.subtitle),
+                ...RETIRED_DEFAULT_SUBTITLES,
+              ];
               const def = ICON_DEFAULT_TEXT[next];
               const patch: Partial<LinkItem> = { icon: next };
               if (!link.title.trim() || knownTitles.includes(link.title)) {
@@ -299,45 +263,7 @@ export function LinkEditor({
             />
           )}
           {link.icon === "google" && (
-            <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3">
-              <p className="mb-2 text-xs font-medium text-foreground">Find your Google Business</p>
-              <div className="relative">
-                <Input
-                  placeholder="e.g. Juices4Life Harlesden"
-                  value={placeQuery}
-                  onChange={(e) => setPlaceQuery(e.target.value)}
-                  className="h-9 pr-9"
-                />
-                <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-muted-foreground">
-                  {placeLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                </div>
-              </div>
-              {placeResults && placeResults.length > 0 && (
-                <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
-                  {placeResults.map((r) => (
-                    <li key={r.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onChange({ url: r.reviewUrl });
-                          setPlaceResults(null);
-                          setPlaceQuery("");
-                          toast.success(`Linked review URL for ${r.name}`);
-                        }}
-                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-left text-xs transition hover:bg-accent"
-                      >
-                        <div className="font-medium text-foreground">{r.name}</div>
-                        {r.address && <div className="text-muted-foreground">{r.address}</div>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <GooglePlaceSearch onPick={(reviewUrl) => onChange({ url: reviewUrl })} />
           )}
         </div>
       </div>

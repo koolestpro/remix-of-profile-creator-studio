@@ -1,4 +1,5 @@
-import { Mail, Phone, Globe, MapPin, Download, Share2 } from "lucide-react";
+import { Mail, Phone, Globe, MapPin, Download, Share2, Loader2 } from "lucide-react";
+import { useState } from "react";
 import type { ProfileData, CardData, SocialItem } from "@/lib/profile-types";
 import { createDefaultCardData } from "@/lib/profile-types";
 import { renderIcon } from "@/lib/icon-registry";
@@ -32,13 +33,78 @@ function esc(v: string) {
 }
 
 /**
+ * Folds a long vCard line to 75 characters, per RFC 2426. Continuation lines
+ * start with a single space. Without this the embedded photo is one enormous
+ * line and stricter parsers (iOS Contacts among them) reject the whole card.
+ */
+function fold(line: string): string {
+  if (line.length <= 75) return line;
+  const out: string[] = [line.slice(0, 75)];
+  for (let i = 75; i < line.length; i += 74) out.push(` ${line.slice(i, i + 74)}`);
+  return out.join("\r\n");
+}
+
+/**
+ * Loads the round profile picture and re-encodes it as a small square JPEG for
+ * embedding in the vCard.
+ *
+ * Deliberately only the round picture — the banner is decoration for the web
+ * page, not the person, and contacts apps show a single round avatar.
+ *
+ * Downscaled to 400px because some phones silently drop contacts carrying
+ * multi-megabyte photos. Returns null on any failure (CORS, decode error, a
+ * browser without canvas) so Save contact still works, just without a picture.
+ */
+async function loadPhotoBase64(
+  src: string,
+  zoomPercent = 100,
+): Promise<{ base64: string; type: string } | null> {
+  try {
+    const res = await fetch(src, { mode: "cors" });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const bitmap = await createImageBitmap(blob);
+
+    const SIZE = 400;
+    const canvas = document.createElement("canvas");
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // Centre-crop to a square, then apply the same zoom the card displays, so
+    // the saved contact photo matches what the visitor actually saw.
+    const zoom = Math.max(1, zoomPercent / 100);
+    const side = Math.min(bitmap.width, bitmap.height) / zoom;
+    const sx = (bitmap.width - side) / 2;
+    const sy = (bitmap.height - side) / 2;
+
+    // JPEG has no alpha, so fill white first or transparent logos go black.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, SIZE, SIZE);
+    bitmap.close?.();
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    const base64 = dataUrl.split(",")[1];
+    if (!base64) return null;
+    return { base64, type: "JPEG" };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Builds a VCARD 3.0 payload from the card fields.
  *
  * The full name is split on the last space so "Maya Okonkwo" yields
  * N:Okonkwo;Maya — single-word names land entirely in the given-name slot,
  * which every contacts app handles gracefully.
  */
-export function buildVCard(profile: ProfileData): string {
+export function buildVCard(
+  profile: ProfileData,
+  photo?: { base64: string; type: string } | null,
+): string {
   const c = cardOf(profile);
   const name = c.fullName.trim() || profile.businessName || "Contact";
   const parts = name.split(/\s+/);
@@ -59,15 +125,23 @@ export function buildVCard(profile: ProfileData): string {
   if (site) lines.push(`URL:${esc(site)}`);
   if (c.location) lines.push(`ADR;TYPE=WORK:;;${esc(c.location)};;;;`);
   if (c.aboutText) lines.push(`NOTE:${esc(c.aboutText)}`);
+  if (photo) lines.push(fold(`PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`));
   lines.push("END:VCARD");
   // vCard requires CRLF line endings; some Android contact apps reject LF.
   return lines.join("\r\n");
 }
 
-/** Triggers the .vcf download that saves the card to the visitor's phone. */
-export function downloadVCard(profile: ProfileData) {
+/**
+ * Triggers the .vcf download that saves the card to the visitor's phone,
+ * embedding the round profile picture when one is set.
+ */
+export async function downloadVCard(profile: ProfileData) {
   const c = cardOf(profile);
-  const blob = new Blob([buildVCard(profile)], { type: "text/vcard;charset=utf-8" });
+  const photo = profile.secondaryImage
+    ? await loadPhotoBase64(profile.secondaryImage, profile.secondaryImageZoom ?? 100)
+    : null;
+
+  const blob = new Blob([buildVCard(profile, photo)], { type: "text/vcard;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -110,6 +184,9 @@ export function BusinessCardView({
   const textColor = profile.textColor ?? "#111111";
   const actionTextColor = profile.actionTextColor ?? "#FFFFFF";
   const buttonColor = profile.buttonColor ?? "#8b5cf6";
+  // Encoding the photo takes a beat on a slow connection — show progress
+  // rather than letting the button feel dead.
+  const [savingContact, setSavingContact] = useState(false);
 
   const handleShare = async () => {
     if (!interactive || typeof window === "undefined") return;
@@ -129,17 +206,25 @@ export function BusinessCardView({
     }
   };
 
-  const handleSave = () => {
-    if (!interactive) return;
+  const handleSave = async () => {
+    if (!interactive || savingContact) return;
+    setSavingContact(true);
     onSaveContact?.();
-    downloadVCard(profile);
+    try {
+      await downloadVCard(profile);
+    } finally {
+      setSavingContact(false);
+    }
   };
 
+  // Banner height, clip shape and avatar sizing deliberately mirror the landing
+  // page (p.$slug.tsx) so a profile switched between formats keeps the same
+  // header proportions and the same amount of image crop.
   const s = compact
     ? {
-        header: "h-40",
+        header: "h-44",
         avatar: "h-24 w-24",
-        avatarPull: "-mt-16",
+        avatarPull: "-mt-14",
         name: "text-lg",
         title: "text-[10px]",
         pad: "px-4",
@@ -149,8 +234,8 @@ export function BusinessCardView({
         saveBtn: "py-2.5 text-xs",
       }
     : {
-        header: "h-56",
-        avatar: "h-36 w-36",
+        header: "h-80",
+        avatar: "h-44 w-44",
         avatarPull: "-mt-24",
         name: "text-2xl",
         title: "text-sm",
@@ -160,6 +245,9 @@ export function BusinessCardView({
         social: "h-14 w-14",
         saveBtn: "py-3.5 text-sm",
       };
+
+  // Same V-notch as the landing page header.
+  const CLIP = "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)";
 
   // The banner and avatar reuse the landing page's images, per spec.
   const banner = profile.headerImage;
@@ -209,7 +297,7 @@ export function BusinessCardView({
             <video
               src={banner}
               className={`w-full object-cover object-center ${s.header}`}
-              style={{ clipPath: "polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)" }}
+              style={{ clipPath: CLIP }}
               autoPlay
               muted
               loop
@@ -220,13 +308,13 @@ export function BusinessCardView({
               src={banner}
               alt=""
               className={`w-full object-cover object-center ${s.header}`}
-              style={{ clipPath: "polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)" }}
+              style={{ clipPath: CLIP }}
             />
           )
         ) : (
           <div
             className={`w-full bg-gradient-to-br from-muted to-muted-foreground/20 ${s.header}`}
-            style={{ clipPath: "polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)" }}
+            style={{ clipPath: CLIP }}
           />
         )}
 
@@ -248,9 +336,9 @@ export function BusinessCardView({
 
       {/* Avatar — same secondary image as the landing page */}
       <div className={`relative flex justify-center ${s.avatarPull}`}>
+        {/* White ring, matching the landing page's logo treatment. */}
         <div
-          className={`overflow-hidden rounded-full bg-black shadow-lg ring-[6px] ${s.avatar}`}
-          style={{ "--tw-ring-color": profile.bgColor } as React.CSSProperties}
+          className={`overflow-hidden rounded-full border-4 border-background bg-black shadow-lg ${s.avatar}`}
         >
           {avatar ? (
             <img
@@ -288,10 +376,19 @@ export function BusinessCardView({
         <button
           type="button"
           onClick={handleSave}
+          disabled={savingContact}
           className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full font-semibold shadow-md transition active:scale-[0.98] ${s.saveBtn}`}
           style={{ backgroundColor: buttonColor, color: actionTextColor }}
         >
-          <Download className={compact ? "h-3 w-3 shrink-0" : "h-4 w-4 shrink-0"} />
+          {savingContact ? (
+            <Loader2
+              className={
+                compact ? "h-3 w-3 shrink-0 animate-spin" : "h-4 w-4 shrink-0 animate-spin"
+              }
+            />
+          ) : (
+            <Download className={compact ? "h-3 w-3 shrink-0" : "h-4 w-4 shrink-0"} />
+          )}
           {c.saveContactText || "Save contact"}
         </button>
       </section>
@@ -377,7 +474,9 @@ export function BusinessCardView({
       )}
 
       {/* Find me on + powered by */}
-      <footer className={`mt-7 ${s.pad} py-6`} style={{ backgroundColor: "rgba(0,0,0,0.03)" }}>
+      {/* No tint here — the footer sits on the profile background so the
+       *  "Find me on" block doesn't read as a different colour band. */}
+      <footer className={`mt-7 ${s.pad} py-6`}>
         {c.socials.length > 0 && (
           <>
             <h2

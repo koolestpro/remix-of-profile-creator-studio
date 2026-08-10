@@ -129,18 +129,28 @@ export const ICON_DEFAULT_TEXT: Record<IconKey, { title: string; subtitle: strin
   instagram: { title: "Instagram", subtitle: "Follow us" },
   tiktok: { title: "TikTok", subtitle: "Follow us" },
   facebook: { title: "Facebook", subtitle: "Follow us" },
-  whatsapp: { title: "WhatsApp", subtitle: "Let's connect" },
+  whatsapp: { title: "WhatsApp", subtitle: "Get in touch" },
   website: { title: "Website", subtitle: "Visit our site" },
   appstore: { title: "App Store", subtitle: "Download our App" },
   googleplay: { title: "Google Play", subtitle: "Download our App" },
   tripadvisor: { title: "Tripadvisor", subtitle: "Leave us a review" },
   trustpilot: { title: "Trustpilot", subtitle: "Leave us a review" },
   loyalty: { title: "Loyalty", subtitle: "Join our programme" },
-  linkedin: { title: "LinkedIn", subtitle: "Let's connect" },
+  linkedin: { title: "LinkedIn", subtitle: "Let's Connect" },
   snapchat: { title: "Snapchat", subtitle: "Add us" },
   custom: { title: "", subtitle: "" },
   pdf: { title: "Menu", subtitle: "View PDF" },
 };
+
+/**
+ * Subtitles that used to be auto-filled but have since been reworded.
+ *
+ * The link editor only overwrites title/subtitle when the current value is one
+ * it filled in itself, so that hand-written copy is never clobbered. Without
+ * this list, retired defaults would look like the user typed them and would
+ * stick around forever after an icon change.
+ */
+export const RETIRED_DEFAULT_SUBTITLES = ["Let's connect"];
 
 export function renderIcon(key: IconKey, className?: string) {
   const src = ICON_IMAGE_SRC[key];
