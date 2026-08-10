@@ -88,6 +88,7 @@ import {
   type StoredProfile,
   type Folder,
 } from "@/lib/profile-store";
+import type { ProfileType } from "@/lib/profile-types";
 import { useAuth } from "@/lib/auth";
 import { useRequireAuth } from "@/lib/use-require-auth";
 
@@ -119,6 +120,7 @@ function Portal() {
   const [loaded, setLoaded] = useState(false);
   const [query, setQuery] = useState("");
   const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState<ProfileType>("landing");
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState<string>(FOLDER_COLORS[0]);
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
@@ -215,7 +217,7 @@ function Portal() {
     }
     setCreating(true);
     try {
-      const p = await createProfile(name);
+      const p = await createProfile(name, newType);
       if (activeFolder !== ALL && activeFolder !== UNCATEGORIZED) {
         await moveProfileToFolder(p.id, activeFolder);
       }
@@ -614,7 +616,7 @@ function Portal() {
                 <h2 className="text-lg font-semibold text-white">Create a new profile</h2>
                 <p className="text-sm text-white/80">
                   {activeFolder === ALL || activeFolder === UNCATEGORIZED
-                    ? "Give your profile a name to get started."
+                    ? "Give your profile a name and pick a format to get started."
                     : `Will be added to “${folders.find((f) => f.id === activeFolder)?.name}”.`}
                 </p>
               </div>
@@ -626,6 +628,18 @@ function Portal() {
                   placeholder="e.g. Juices4Life — Wembley Branch"
                   className="h-11 flex-1 border-white/20 bg-white/10 text-white placeholder:text-white/50 focus-visible:ring-white/50"
                 />
+                <Select value={newType} onValueChange={(v) => setNewType(v as ProfileType)}>
+                  <SelectTrigger
+                    aria-label="Profile format"
+                    className="h-11 w-full border-white/20 bg-white/10 text-white focus:ring-white/50 sm:w-[190px]"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="landing">Landing page</SelectItem>
+                    <SelectItem value="card">Business card</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   size="lg"
                   onClick={handleCreate}
@@ -1172,6 +1186,15 @@ function ProfileCard({
             )}
             <span className="truncate text-xs text-muted-foreground">
               · {profile.businessName || "—"}
+            </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                profile.profileType === "card"
+                  ? "bg-violet-500/15 text-violet-700 dark:text-violet-400"
+                  : "bg-sky-500/15 text-sky-700 dark:text-sky-400"
+              }`}
+            >
+              {profile.profileType === "card" ? "Business card" : "Landing page"}
             </span>
             {profile.paused && (
               <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">

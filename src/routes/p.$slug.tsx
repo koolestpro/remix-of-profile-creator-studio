@@ -10,6 +10,7 @@ import {
 } from "@/lib/profile-store";
 import { renderIcon } from "@/lib/icon-registry";
 import { isVideoSrc } from "@/lib/utils";
+import { BusinessCardView } from "@/components/BusinessCardView";
 
 export const Route = createFileRoute("/p/$slug")({
   head: () => ({
@@ -260,6 +261,36 @@ function PublicProfile() {
   const profile = state.profile;
   const textColor = profile.textColor ?? "#111111";
   const actionTextColor = profile.actionTextColor ?? "#FFFFFF";
+
+  // Business cards use a completely different layout. Everything below this
+  // branch is the original landing page and is left untouched.
+  if (profile.profileType === "card") {
+    return (
+      <main
+        className="min-h-screen w-full overflow-x-hidden"
+        style={{ backgroundColor: profile.bgColor }}
+      >
+        <div className="mx-auto min-h-screen w-full max-w-md">
+          <BusinessCardView
+            profile={profile}
+            onLinkClick={(id) => {
+              recordLinkClick(profile, id).catch(() => {});
+            }}
+            onSaveContact={() => {
+              recordLinkClick(profile, MAIN_BUTTON_CLICK_ID).catch(() => {});
+            }}
+            onPoweredByClick={() => setMenuOpen(true)}
+          />
+        </div>
+        {menuOpen && (
+          <ContactForm
+            businessName={profile.businessName || profile.cardData?.fullName || ""}
+            onClose={() => setMenuOpen(false)}
+          />
+        )}
+      </main>
+    );
+  }
 
   const handleShare = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";

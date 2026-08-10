@@ -2,10 +2,33 @@ import { ChevronRight, Menu, Share2 } from "lucide-react";
 import { ProfileData } from "@/lib/profile-types";
 import { renderIcon } from "@/lib/icon-registry";
 import { isVideoSrc } from "@/lib/utils";
+import { BusinessCardView } from "@/components/BusinessCardView";
 
 export function PhonePreview({ profile }: { profile: ProfileData }) {
   const textColor = profile.textColor ?? "#111111";
   const actionTextColor = profile.actionTextColor ?? "#FFFFFF";
+
+  // Business cards render their own layout inside the same phone frame, so
+  // what the editor shows always matches what a visitor gets.
+  if (profile.profileType === "card") {
+    return (
+      <div
+        className="relative mx-auto w-full max-w-[320px] rounded-[3rem] border-[14px] border-foreground/90 bg-foreground/90 p-0"
+        style={{ boxShadow: "var(--shadow-phone)" }}
+      >
+        <div className="absolute left-1/2 top-0 z-20 h-6 w-32 -translate-x-1/2 rounded-b-2xl bg-foreground/90" />
+        <div
+          className="relative h-[640px] overflow-hidden rounded-[2.2rem]"
+          style={{ backgroundColor: profile.bgColor }}
+        >
+          <div className="h-full overflow-y-auto scrollbar-thin">
+            <BusinessCardView profile={profile} interactive={false} compact />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative mx-auto w-full max-w-[320px] rounded-[3rem] border-[14px] border-foreground/90 bg-foreground/90 p-0"

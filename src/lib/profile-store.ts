@@ -1,4 +1,5 @@
-import type { ProfileData, LinkItem } from "@/lib/profile-types";
+import type { ProfileData, LinkItem, ProfileType, CardData } from "@/lib/profile-types";
+import { createDefaultCardData } from "@/lib/profile-types";
 import { supabase } from "@/lib/supabase";
 
 export interface StoredProfile extends ProfileData {
@@ -21,9 +22,14 @@ export interface Folder {
 const KEY = "lps:profiles:v4";
 const FOLDERS_KEY = "lps:folders:v2";
 
-export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
+export function createDefaultProfile(
+  name = "Untitled Profile",
+  profileType: ProfileType = "landing",
+): ProfileData {
   return {
     profileName: name,
+    profileType,
+    cardData: profileType === "card" ? createDefaultCardData() : undefined,
     headerImage: undefined,
     secondaryImage: undefined,
     secondaryImageZoom: 100,
@@ -39,6 +45,16 @@ export function createDefaultProfile(name = "Untitled Profile"): ProfileData {
     mainButtonText: "View Menu",
     mainButtonUrl: "",
     links: [],
+    // The business card ships looking like the approved preview: purple
+    // action colour on a warm cream body. Every one of these stays editable.
+    ...(profileType === "card"
+      ? {
+          bgColor: "#faf5f0",
+          buttonColor: "#8b5cf6",
+          textColor: "#111111",
+          actionTextColor: "#FFFFFF",
+        }
+      : {}),
   };
 }
 
@@ -92,8 +108,22 @@ interface ProfileRow {
   show_powered_by: boolean | null;
   powered_by_logo: string | null;
   show_menu_button: boolean | null;
+  profile_type: string | null;
+  card_data: Partial<CardData> | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Merge a stored (possibly partial or null) card_data blob over the defaults,
+ *  so cards written before a field existed still read back cleanly. */
+function normalizeCardData(raw: Partial<CardData> | null | undefined): CardData {
+  const base = createDefaultCardData();
+  if (!raw || typeof raw !== "object") return base;
+  return {
+    ...base,
+    ...raw,
+    socials: Array.isArray(raw.socials) ? raw.socials : [],
+  };
 }
 
 interface FolderRow {
@@ -111,6 +141,8 @@ function rowToProfile(r: ProfileRow): StoredProfile {
     paused: r.paused,
     scanCount: r.scan_count,
     profileName: r.profile_name,
+    profileType: r.profile_type === "card" ? "card" : "landing",
+    cardData: normalizeCardData(r.card_data),
     headerImage: r.header_image ?? undefined,
     secondaryImage: r.secondary_image ?? undefined,
     secondaryImageZoom: r.secondary_image_zoom ?? 100,
@@ -138,6 +170,10 @@ function rowToProfile(r: ProfileRow): StoredProfile {
 function profileDataToRow(data: ProfileData) {
   return {
     profile_name: data.profileName,
+    profile_type: data.profileType ?? "landing",
+    // Always persisted, even for landing pages, so a profile switched to
+    // "card" and back never loses what was typed into the card fields.
+    card_data: data.cardData ?? null,
     header_image: data.headerImage ?? null,
     secondary_image: data.secondaryImage ?? null,
     secondary_image_zoom: data.secondaryImageZoom ?? 100,
@@ -548,7 +584,10 @@ export async function getProfileBySlug(slug: string): Promise<StoredProfile | un
   return data ? rowToProfile(data as ProfileRow) : undefined;
 }
 
-export async function createProfile(name: string): Promise<StoredProfile> {
+export async function createProfile(
+  name: string,
+  profileType: ProfileType = "landing",
+): Promise<StoredProfile> {
   if (!supabase) {
     const now = Date.now();
     const all = localListProfiles();
@@ -560,7 +599,7 @@ export async function createProfile(name: string): Promise<StoredProfile> {
       slug = `${slugify(name) || "profile"}-${n}`;
     }
     const profile: StoredProfile = {
-      ...createDefaultProfile(name),
+      ...createDefaultProfile(name, profileType),
       id: crypto.randomUUID(),
       slug,
       scanCount: 0,
@@ -571,7 +610,7 @@ export async function createProfile(name: string): Promise<StoredProfile> {
     localWriteProfiles(all);
     return profile;
   }
-  const data = createDefaultProfile(name);
+  const data = createDefaultProfile(name, profileType);
   const id = crypto.randomUUID();
   const base = slugify(name) || "profile";
 
@@ -735,8 +774,21 @@ export async function duplicateProfile(id: string): Promise<StoredProfile | unde
 
   const data: ProfileData = {
     profileName: name,
+    profileType: src.profileType ?? "landing",
+    // Fresh ids for the copy's social icons so per-icon click analytics stay
+    // attributed to the right profile (same reasoning as the link ids above).
+    cardData: src.cardData
+      ? {
+          ...src.cardData,
+          socials: src.cardData.socials.map((s) => ({ ...s, id: crypto.randomUUID() })),
+        }
+      : undefined,
     headerImage: src.headerImage,
     secondaryImage: src.secondaryImage,
+    // Previously dropped by the copy, which silently reset the logo crop and
+    // badge colour on every duplicate.
+    secondaryImageZoom: src.secondaryImageZoom,
+    poweredByLogo: src.poweredByLogo,
     businessName: src.businessName,
     businessDescription: src.businessDescription,
     bgColor: src.bgColor,

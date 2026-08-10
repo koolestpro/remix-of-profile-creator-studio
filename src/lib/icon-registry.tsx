@@ -11,6 +11,8 @@ import {
   GooglePlayIcon,
   LoyaltyIcon,
   WhatsAppIcon,
+  LinkedInIcon,
+  SnapchatIcon,
 } from "@/components/BrandIcons";
 
 export type IconKey =
@@ -25,6 +27,8 @@ export type IconKey =
   | "googleplay"
   | "loyalty"
   | "whatsapp"
+  | "linkedin"
+  | "snapchat"
   | "custom"
   | "pdf";
 
@@ -43,6 +47,8 @@ const map: Record<IconKey, React.ComponentType<{ className?: string }>> = {
   googleplay: GooglePlayIcon,
   loyalty: LoyaltyIcon,
   whatsapp: WhatsAppIcon,
+  linkedin: LinkedInIcon,
+  snapchat: SnapchatIcon,
   custom: CustomIcon,
   pdf: PdfIcon,
 };
@@ -59,8 +65,24 @@ export const ICON_OPTIONS: { key: IconKey; label: string }[] = [
   { key: "googleplay", label: "Google Play" },
   { key: "loyalty", label: "Loyalty Programme" },
   { key: "whatsapp", label: "WhatsApp" },
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "snapchat", label: "Snapchat" },
   { key: "custom", label: "Custom" },
   { key: "pdf", label: "Upload PDF" },
+];
+
+/** Platforms offered in the business card's "Find me on" grid. Excludes
+ *  landing-page-only entries like PDF uploads and review sites. */
+export const SOCIAL_ICON_OPTIONS: { key: IconKey; label: string }[] = [
+  { key: "instagram", label: "Instagram" },
+  { key: "facebook", label: "Facebook" },
+  { key: "tiktok", label: "TikTok" },
+  { key: "google", label: "Google" },
+  { key: "whatsapp", label: "WhatsApp" },
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "snapchat", label: "Snapchat" },
+  { key: "website", label: "Website" },
+  { key: "custom", label: "Custom" },
 ];
 
 export const ICON_COLORS: Record<IconKey, string> = {
@@ -75,6 +97,8 @@ export const ICON_COLORS: Record<IconKey, string> = {
   googleplay: "#34A853",
   loyalty: "#F59E0B",
   whatsapp: "#25D366",
+  linkedin: "#0A66C2",
+  snapchat: "#FFFC00",
   custom: "#8B5CF6",
   pdf: "#DC2626",
 };
@@ -112,6 +136,8 @@ export const ICON_DEFAULT_TEXT: Record<IconKey, { title: string; subtitle: strin
   tripadvisor: { title: "Tripadvisor", subtitle: "Leave us a review" },
   trustpilot: { title: "Trustpilot", subtitle: "Leave us a review" },
   loyalty: { title: "Loyalty", subtitle: "Join our programme" },
+  linkedin: { title: "LinkedIn", subtitle: "Let's connect" },
+  snapchat: { title: "Snapchat", subtitle: "Add us" },
   custom: { title: "", subtitle: "" },
   pdf: { title: "Menu", subtitle: "View PDF" },
 };
