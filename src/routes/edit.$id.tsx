@@ -1254,7 +1254,7 @@ function EditProfile() {
             <div className="mb-4 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Smartphone className="h-3.5 w-3.5" /> Live preview
             </div>
-            <PhonePreview profile={deferredProfile ?? profile} />
+            <PhonePreview profile={deferredProfile ?? profile} publicUrl={url} />
           </div>
         </aside>
       </main>

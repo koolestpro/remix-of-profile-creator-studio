@@ -24,32 +24,43 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
     return { query: q };
   })
   .handler(async ({ data }) => {
-    // process.env picks up VITE_* vars on the server via Vite/Vinxi env loading
-    const mapsKey =
-      process.env.VITE_GOOGLE_MAPS_API_KEY ?? process.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+    // process.env picks up VITE_* vars on the server via Vite/Vinxi env loading.
+    // Values pasted into .env with surrounding quotes come through with the
+    // quotes attached in some setups, which silently produces an invalid key —
+    // so strip them rather than sending a key Google will never accept.
+    const rawKey =
+      process.env.VITE_GOOGLE_MAPS_API_KEY ??
+      process.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+    const mapsKey = rawKey?.trim().replace(/^["']|["']$/g, "");
+
+    // Which variable supplied the key. The Lovable one is a *browser* key: it
+    // normally carries HTTP-referrer restrictions, and this call is server-side
+    // with no referrer, so it can come back empty. Surfaced to the client so a
+    // misconfigured deployment is diagnosable instead of looking like
+    // "no results".
+    const keySource = process.env.VITE_GOOGLE_MAPS_API_KEY
+      ? "VITE_GOOGLE_MAPS_API_KEY"
+      : "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY";
 
     if (!mapsKey) {
       throw new Error(
-        "Google Maps key not configured. " +
-          "Add VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY to .env.local.",
+        "Google Maps key not configured on the server. " +
+          "Add VITE_GOOGLE_MAPS_API_KEY to your hosting environment variables " +
+          "(Vercel → Project → Settings → Environment Variables), then redeploy. " +
+          "A .env.local file only works on your own machine — it is gitignored " +
+          "and never reaches the deployed site.",
       );
     }
 
-    console.log("🔑 Using Maps key:", mapsKey.slice(0, 12) + "...");
-
-    const res = await fetch(
-      "https://places.googleapis.com/v1/places:searchText",
-      {
-        method: "POST",
-        headers: {
-          "X-Goog-Api-Key": mapsKey,
-          "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ textQuery: data.query }),
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "X-Goog-Api-Key": mapsKey,
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress",
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ textQuery: data.query }),
+    });
 
     if (!res.ok) {
       const body = await res.text();
@@ -68,10 +79,7 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
           if (gMsg.includes("not been used") || gMsg.includes("disabled")) {
             hint =
               "\n\n👉 FIX: Go to console.cloud.google.com → APIs & Services → Enable APIs → search for 'Places API (New)' and enable it. (The classic 'Places API' is a different product and won't work here.)";
-          } else if (
-            gMsg.includes("not authorized") ||
-            gMsg.includes("not allowed")
-          ) {
+          } else if (gMsg.includes("not authorized") || gMsg.includes("not allowed")) {
             hint =
               "\n\n👉 FIX: Your API key has HTTP-referrer restrictions, but this call goes through the server — it has no referrer. Go to console.cloud.google.com → Credentials → edit this key → set Application restrictions to 'None' (or 'IP addresses').";
           } else {
@@ -104,5 +112,11 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
       reviewUrl: `https://search.google.com/local/writereview?placeid=${p.id}`,
     }));
 
-    return { results };
+    // A 200 with no places for a real query almost always means the key was
+    // rejected softly rather than that the business doesn't exist — most often
+    // a browser key with HTTP-referrer restrictions being used server-side.
+    // Pass a hint back so the UI can say so instead of claiming "no matches".
+    const suspiciousEmpty = results.length === 0 && keySource !== "VITE_GOOGLE_MAPS_API_KEY";
+
+    return { results, keySource, suspiciousEmpty };
   });

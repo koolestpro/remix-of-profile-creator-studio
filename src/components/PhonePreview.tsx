@@ -4,7 +4,14 @@ import { renderIcon } from "@/lib/icon-registry";
 import { isVideoSrc } from "@/lib/utils";
 import { BusinessCardView } from "@/components/BusinessCardView";
 
-export function PhonePreview({ profile }: { profile: ProfileData }) {
+export function PhonePreview({
+  profile,
+  publicUrl,
+}: {
+  profile: ProfileData;
+  /** Live URL, so the previewed QR is the real one rather than the editor's. */
+  publicUrl?: string;
+}) {
   const textColor = profile.textColor ?? "#111111";
   const actionTextColor = profile.actionTextColor ?? "#FFFFFF";
 
@@ -22,7 +29,7 @@ export function PhonePreview({ profile }: { profile: ProfileData }) {
           style={{ backgroundColor: profile.bgColor }}
         >
           <div className="h-full overflow-y-auto scrollbar-thin">
-            <BusinessCardView profile={profile} interactive={false} compact />
+            <BusinessCardView profile={profile} publicUrl={publicUrl} interactive={false} compact />
           </div>
         </div>
       </div>

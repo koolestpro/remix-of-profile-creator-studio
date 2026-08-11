@@ -273,6 +273,7 @@ function PublicProfile() {
         <div className="mx-auto min-h-screen w-full max-w-md">
           <BusinessCardView
             profile={profile}
+            publicUrl={typeof window !== "undefined" ? window.location.href : undefined}
             onLinkClick={(id) => {
               recordLinkClick(profile, id).catch(() => {});
             }}

@@ -124,11 +124,15 @@ export function buildVCard(
   const site = websiteHref(c.website);
   if (site) lines.push(`URL:${esc(site)}`);
   if (c.location) lines.push(`ADR;TYPE=WORK:;;${esc(c.location)};;;;`);
-  if (c.aboutText) lines.push(`NOTE:${esc(c.aboutText)}`);
+  // PHOTO sits ahead of NOTE on purpose: if anything ever truncates the file,
+  // the bio is the cheapest thing to lose, not the picture.
   if (photo) lines.push(fold(`PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`));
+  if (c.aboutText) lines.push(`NOTE:${esc(c.aboutText)}`);
   lines.push("END:VCARD");
   // vCard requires CRLF line endings; some Android contact apps reject LF.
-  return lines.join("\r\n");
+  // The trailing CRLF matters too — parsers that read line-by-line can drop the
+  // final property when the file ends without one.
+  return lines.join("\r\n") + "\r\n";
 }
 
 /**
@@ -151,7 +155,13 @@ export async function downloadVCard(profile: ProfileData) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+
+  // Do NOT revoke synchronously. Adding the photo took the payload from a few
+  // hundred bytes to ~30 KB, and revoking the object URL while the browser is
+  // still reading it truncates the download — the text properties at the top
+  // survive, the PHOTO block at the bottom is cut off. That looks exactly like
+  // "the contact saves but the picture doesn't".
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /* ============================================================
@@ -170,6 +180,8 @@ interface BusinessCardViewProps {
   interactive?: boolean;
   /** Scales the whole card down for the editor's phone frame. */
   compact?: boolean;
+  /** Public URL encoded in the QR code. Falls back to the current address. */
+  publicUrl?: string;
 }
 
 export function BusinessCardView({
@@ -179,6 +191,7 @@ export function BusinessCardView({
   onPoweredByClick,
   interactive = true,
   compact = false,
+  publicUrl,
 }: BusinessCardViewProps) {
   const c = cardOf(profile);
   const textColor = profile.textColor ?? "#111111";
@@ -248,6 +261,16 @@ export function BusinessCardView({
 
   // Same V-notch as the landing page header.
   const CLIP = "polygon(0 0, 100% 0, 100% 86%, 50% 100%, 0 86%)";
+
+  // Resolved on the client so the editor preview and the live page both work
+  // without threading the origin through server rendering. Same QR service the
+  // dashboard already uses, so the codes are consistent everywhere.
+  const qrTarget = publicUrl ?? (typeof window !== "undefined" ? window.location.href : "");
+  const qrSrc = qrTarget
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=0&data=${encodeURIComponent(
+        qrTarget,
+      )}`
+    : "";
 
   // The banner and avatar reuse the landing page's images, per spec.
   const banner = profile.headerImage;
@@ -501,6 +524,31 @@ export function BusinessCardView({
           </>
         )}
 
+        {/* QR to this card — sits between the socials and the logo so it can be
+         *  scanned straight off someone's screen. */}
+        {qrSrc && (
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <span
+              className={`font-semibold uppercase tracking-[0.18em] ${
+                compact ? "text-[9px]" : "text-xs"
+              }`}
+              style={{ color: textColor, opacity: 0.6 }}
+            >
+              Scan my card
+            </span>
+            {/* Always on white with padding — a QR needs a light quiet zone to
+             *  scan, and the card background is user-chosen. */}
+            <div className="rounded-2xl bg-white p-3 shadow-md">
+              <img
+                src={qrSrc}
+                alt="QR code linking to this business card"
+                loading="lazy"
+                className={compact ? "h-20 w-20" : "h-36 w-36"}
+              />
+            </div>
+          </div>
+        )}
+
         {profile.showPoweredBy !== false && (
           <div className="mt-6 flex flex-col items-center gap-1">
             <span
@@ -524,7 +572,11 @@ export function BusinessCardView({
                     : "/tap-and-rate-transparent.png"
                 }
                 alt="Tapandrate"
-                className={compact ? "h-16 w-auto object-contain" : "h-24 w-auto object-contain"}
+                /* Same size and negative offset as the landing page, so the
+                 * badge is identical across both formats. */
+                className={
+                  compact ? "-mt-8 h-24 w-auto object-contain" : "-mt-16 h-48 w-auto object-contain"
+                }
               />
             </button>
           </div>

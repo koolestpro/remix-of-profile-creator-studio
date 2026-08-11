@@ -26,23 +26,33 @@ export function GooglePlaceSearch({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[] | null>(null);
   const [loading, setLoading] = useState(false);
+  // Held in state as well as toasted — a toast vanishes, and "it just says no
+  // matches" is impossible to debug. The real reason stays on screen.
+  const [error, setError] = useState<string | null>(null);
+  const [misconfigured, setMisconfigured] = useState(false);
 
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
       setResults(null);
+      setError(null);
+      setMisconfigured(false);
       return;
     }
     // Debounced so a burst of keystrokes costs one Places call, not one each.
     const t = setTimeout(async () => {
       setLoading(true);
+      setError(null);
       try {
-        const { results: found } = await searchGooglePlaces({ data: { query: q } });
-        setResults(found);
+        const res = await searchGooglePlaces({ data: { query: q } });
+        setResults(res.results ?? []);
+        setMisconfigured(Boolean(res.suspiciousEmpty));
       } catch (err) {
         console.error("Places search error:", err);
         const msg = err instanceof Error ? err.message : "Unknown error";
-        toast.error(`Google Places: ${msg}`, { duration: 6000 });
+        setResults(null);
+        setError(msg);
+        toast.error(`Google Places: ${msg}`, { duration: 8000 });
       } finally {
         setLoading(false);
       }
@@ -85,9 +95,20 @@ export function GooglePlaceSearch({
           ))}
         </ul>
       )}
-      {results && results.length === 0 && !loading && (
+      {error && (
+        <p className="mt-2 whitespace-pre-wrap text-xs text-destructive">Search failed — {error}</p>
+      )}
+      {results && results.length === 0 && !loading && !misconfigured && (
         <p className="mt-2 text-xs text-muted-foreground">
           No matches. Try adding the town or street.
+        </p>
+      )}
+      {misconfigured && !loading && (
+        <p className="mt-2 text-xs text-destructive">
+          Google returned no results and the server is using a browser-restricted Maps key, which
+          can't be used for server-side lookups. Add VITE_GOOGLE_MAPS_API_KEY (an unrestricted or
+          IP-restricted key, with "Places API (New)" enabled) to the hosting environment variables
+          and redeploy.
         </p>
       )}
     </div>
