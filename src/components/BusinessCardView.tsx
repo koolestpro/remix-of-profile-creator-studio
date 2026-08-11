@@ -33,6 +33,58 @@ function esc(v: string) {
 }
 
 /**
+ * Escapes a single component of a structured value (ADR, N).
+ *
+ * Unlike esc(), commas are NOT escaped — the caller has already split the value
+ * on commas, so no component contains one. This matters because Google Contacts
+ * renders a "\," escape literally, backslash and all, which is what made the
+ * address field look mangled.
+ */
+function escPart(v: string) {
+  return v.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/\n/g, " ").trim();
+}
+
+/**
+ * Splits a free-text address into the seven components vCard's ADR expects:
+ * po-box; extended; street; locality; region; postal-code; country.
+ *
+ * The editor offers one plain "Location" box, so this makes a best effort at
+ * routing the pieces to the right slots — a contacts app that gets a real
+ * postcode and city can map and sort the entry, whereas one long street string
+ * is dead text. Whatever the split, the parts re-join to what the user typed.
+ */
+function addressComponents(location: string) {
+  const parts = location
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return null;
+
+  let country = "";
+  let postal = "";
+
+  // A trailing all-letters chunk on a 3+ part address is almost always the
+  // country ("… , Brooklyn, NY 11201, USA").
+  if (
+    parts.length >= 3 &&
+    !/\d/.test(parts[parts.length - 1]) &&
+    parts[parts.length - 1].length <= 20
+  ) {
+    country = parts.pop()!;
+  }
+  // Postcodes are the part carrying digits, and they come last.
+  if (parts.length >= 2 && /\d/.test(parts[parts.length - 1])) {
+    postal = parts.pop()!;
+  }
+
+  const street = parts.shift() ?? "";
+  const locality = parts.shift() ?? "";
+  const region = parts.join(" ");
+
+  return { street, locality, region, postal, country };
+}
+
+/**
  * Folds a long vCard line to 75 characters, per RFC 2426. Continuation lines
  * start with a single space. Without this the embedded photo is one enormous
  * line and stricter parsers (iOS Contacts among them) reject the whole card.
@@ -123,7 +175,15 @@ export function buildVCard(
   if (c.email) lines.push(`EMAIL;TYPE=WORK:${esc(c.email)}`);
   const site = websiteHref(c.website);
   if (site) lines.push(`URL:${esc(site)}`);
-  if (c.location) lines.push(`ADR;TYPE=WORK:;;${esc(c.location)};;;;`);
+  const adr = c.location ? addressComponents(c.location) : null;
+  if (adr) {
+    // po-box;extended;street;locality;region;postal-code;country
+    lines.push(
+      `ADR;TYPE=WORK:;;${escPart(adr.street)};${escPart(adr.locality)};${escPart(
+        adr.region,
+      )};${escPart(adr.postal)};${escPart(adr.country)}`,
+    );
+  }
   // PHOTO sits ahead of NOTE on purpose: if anything ever truncates the file,
   // the bio is the cheapest thing to lose, not the picture.
   if (photo) lines.push(fold(`PHOTO;ENCODING=b;TYPE=${photo.type}:${photo.base64}`));
