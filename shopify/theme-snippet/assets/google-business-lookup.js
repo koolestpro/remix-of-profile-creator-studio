@@ -71,12 +71,15 @@
     var controller = null;
     var results = [];
     var active = -1;
+    // Remembered so refocusing the field can restore the previous list without
+    // spending another Google lookup.
+    var lastQuery = "";
 
+    // Hides the list but KEEPS the results, so returning to the field can show
+    // them again. Clearing them here was why the suggestions never came back.
     function close() {
       list.hidden = true;
-      list.innerHTML = "";
       input.setAttribute("aria-expanded", "false");
-      results = [];
       active = -1;
     }
 
@@ -100,6 +103,13 @@
         items[n].setAttribute("aria-selected", n === i ? "true" : "false");
       }
       active = i;
+    }
+
+    function reopen() {
+      if (results.length && list.children.length) {
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+      }
     }
 
     function render() {
@@ -162,6 +172,7 @@
         })
         .then(function (d) {
           results = d.results || [];
+          lastQuery = q;
           render();
         })
         .catch(function (err) {
@@ -207,8 +218,31 @@
       }
     });
 
-    input.addEventListener("blur", function () {
-      setTimeout(close, 150);
+    // Coming back to the field shows the previous matches again. Re-searching
+    // only when the text has actually changed keeps this free.
+    input.addEventListener("focus", function () {
+      var q = input.value.trim();
+      if (looksLikeUrl(q) || q.length < MIN_CHARS) return;
+      if (q === lastQuery) reopen();
+      else search(q);
+    });
+
+    input.addEventListener("click", function () {
+      if (list.hidden) reopen();
+    });
+
+    // Deliberately NOT a blur handler. Blur also fires when the browser loses
+    // focus — switching to another app closed the list and it never returned.
+    // Closing on an outside pointer press is what the customer actually means.
+    document.addEventListener("mousedown", function (e) {
+      if (e.target === input || list.contains(e.target)) return;
+      close();
+    });
+
+    // Tabbing away should still close it, but only when focus really moved to
+    // another element on the page.
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Tab") close();
     });
   }
 

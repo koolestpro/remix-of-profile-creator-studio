@@ -292,6 +292,23 @@ async function handleDetails(body: unknown, origin: string | null, key: string) 
 }
 
 /**
+ * Bounding boxes as [southLat, westLng, northLat, eastLng].
+ *
+ * Used to genuinely restrict business search to a country. Only the countries
+ * we actually sell into need an entry; anything else falls back to an
+ * unrestricted worldwide search.
+ */
+const COUNTRY_BOUNDS: Record<string, [number, number, number, number]> = {
+  gb: [49.8, -8.7, 61.1, 2.1],
+  ie: [51.4, -10.6, 55.4, -5.9],
+  us: [24.4, -125.0, 49.4, -66.9],
+  ca: [41.7, -141.0, 70.0, -52.6],
+  au: [-43.7, 112.9, -10.0, 153.7],
+  nz: [-47.3, 166.4, -34.4, 178.6],
+  ng: [4.2, 2.7, 13.9, 14.7],
+};
+
+/**
  * Finds a customer's Google Business listing by name.
  *
  * Uses Places text search rather than autocomplete: shoppers type a business
@@ -310,10 +327,24 @@ async function handleBusinessSearch(body: unknown, origin: string | null, key: s
   }
 
   const payload: Record<string, unknown> = { textQuery: query.trim().slice(0, MAX_INPUT) };
-  // searchText takes a single `regionCode` string. `includedRegionCodes` is an
-  // autocomplete-only field and makes this endpoint 400.
+
   if (typeof country === "string" && /^[a-z]{2}$/i.test(country)) {
-    payload.regionCode = country.toLowerCase();
+    const code = country.toLowerCase();
+    // regionCode only affects how the response is *formatted* — it does not
+    // filter results at all. Searching "juice" with regionCode=gb still returns
+    // Oregon juice bars. Restricting by bounding box is what actually confines
+    // results to the country, and it's why a short query now finds the local
+    // business instead of being drowned out by American ones.
+    payload.regionCode = code;
+    const box = COUNTRY_BOUNDS[code];
+    if (box) {
+      payload.locationRestriction = {
+        rectangle: {
+          low: { latitude: box[0], longitude: box[1] },
+          high: { latitude: box[2], longitude: box[3] },
+        },
+      };
+    }
   }
 
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
