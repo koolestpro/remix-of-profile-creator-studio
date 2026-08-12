@@ -6,6 +6,7 @@
  * No Lovable connector gateway or separate GOOGLE_MAPS_API_KEY required.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { resolveMapsKey, MAPS_KEY_SETUP_MESSAGE } from "@/lib/maps-key";
 
 export interface PlaceResult {
   id: string;
@@ -28,28 +29,12 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
     // Values pasted into .env with surrounding quotes come through with the
     // quotes attached in some setups, which silently produces an invalid key —
     // so strip them rather than sending a key Google will never accept.
-    const rawKey =
-      process.env.VITE_GOOGLE_MAPS_API_KEY ??
-      process.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
-    const mapsKey = rawKey?.trim().replace(/^["']|["']$/g, "");
-
-    // Which variable supplied the key. The Lovable one is a *browser* key: it
-    // normally carries HTTP-referrer restrictions, and this call is server-side
-    // with no referrer, so it can come back empty. Surfaced to the client so a
-    // misconfigured deployment is diagnosable instead of looking like
-    // "no results".
-    const keySource = process.env.VITE_GOOGLE_MAPS_API_KEY
-      ? "VITE_GOOGLE_MAPS_API_KEY"
-      : "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY";
+    // Shared with the Shopify proxy (places-api.ts) so both paths agree on how
+    // the key is found and reported.
+    const { key: mapsKey, source: keySource } = resolveMapsKey();
 
     if (!mapsKey) {
-      throw new Error(
-        "Google Maps key not configured on the server. " +
-          "Add VITE_GOOGLE_MAPS_API_KEY to your hosting environment variables " +
-          "(Vercel → Project → Settings → Environment Variables), then redeploy. " +
-          "A .env.local file only works on your own machine — it is gitignored " +
-          "and never reaches the deployed site.",
-      );
+      throw new Error(MAPS_KEY_SETUP_MESSAGE);
     }
 
     const res = await fetch("https://places.googleapis.com/v1/places:searchText", {

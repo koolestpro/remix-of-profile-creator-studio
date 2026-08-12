@@ -1,0 +1,20 @@
+# Shopify app config for the address autocomplete theme extension.
+#
+# This app exists only to carry the theme app extension — it has no admin UI,
+# no OAuth scopes and no backend of its own. The address lookup runs on the
+# existing Tapandrate deployment.
+#
+# Replace client_id with the value Shopify gives you after `shopify app init`,
+# and set the store in `shopify app dev --store=...`.
+
+name = "Tapandrate Address Autocomplete"
+client_id = "REPLACE_WITH_CLIENT_ID_FROM_SHOPIFY_PARTNERS"
+application_url = "https://www.tapandrateai.co.uk"
+embedded = false
+
+[access_scopes]
+# No Admin API access is needed: the extension only runs on the storefront.
+scopes = ""
+
+[build]
+include_config_on_deploy = true

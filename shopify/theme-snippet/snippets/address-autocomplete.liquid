@@ -1,0 +1,51 @@
+{% comment %}
+  ============================================================
+  Google Address Autocomplete — Tapandrate
+  ============================================================
+
+  Install:
+    1. Online Store → Themes → (the LIVE theme) → ⋯ → Edit code
+    2. Assets → Add a new asset → upload address-autocomplete.js
+    3. Assets → Add a new asset → upload address-autocomplete.css
+    4. Snippets → Add a new snippet → name it "address-autocomplete"
+       → paste this whole file in
+    5. Layout → theme.liquid → paste this line just before </body>:
+
+         {% raw %}{% render 'address-autocomplete' %}{% endraw %}
+
+  There is NO Google API key in this file, and there must never be one.
+  Anything rendered by Liquid ends up in the page source where any visitor can
+  read it. The key lives on the Tapandrate server; this snippet only knows the
+  address of the lookup endpoint, which is safe to publish because that endpoint
+  only answers approved storefront domains.
+{% endcomment %}
+
+{%- comment -%} ---- Settings: edit these two lines only ---- {%- endcomment -%}
+{%- assign lookup_endpoint = 'https://www.tapandrateai.co.uk' -%}
+{%- assign restrict_to_country = 'GB' -%}
+
+{%- comment -%}
+  Characters typed before we ask Google. Raising this to 4 or 5 cuts the
+  Google bill on a busy store.
+{%- endcomment -%}
+{%- assign minimum_characters = 3 -%}
+
+{%- comment -%}
+  Optional. CSS selectors for address-line-1 inputs on custom forms, separated
+  by newlines. Standard Shopify address fields are detected automatically, so
+  most stores can leave this empty.
+{%- endcomment -%}
+{%- capture extra_selectors -%}{%- endcapture -%}
+
+<script>
+  window.TapAndRateAddressAutocomplete = {
+    proxyUrl: {{ lookup_endpoint | strip | json }},
+    country: {{ restrict_to_country | strip | downcase | json }},
+    selectors: {{ extra_selectors | strip | json }},
+    minChars: {{ minimum_characters }},
+    debug: false
+  };
+</script>
+
+<link rel="stylesheet" href="{{ 'address-autocomplete.css' | asset_url }}">
+<script src="{{ 'address-autocomplete.js' | asset_url }}" defer></script>

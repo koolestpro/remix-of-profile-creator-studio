@@ -36,3 +36,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Pulled Shopify theme — 492 files, managed by Shopify CLI not git
+tapandrate-store/

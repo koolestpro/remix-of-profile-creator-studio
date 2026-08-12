@@ -1,0 +1,6 @@
+api_version = "2025-01"
+
+[[extensions]]
+type = "theme"
+name = "Google Address Autocomplete"
+handle = "address-autocomplete"

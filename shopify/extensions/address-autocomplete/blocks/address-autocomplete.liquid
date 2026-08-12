@@ -1,0 +1,80 @@
+{% comment %}
+  Google Address Autocomplete — app embed block.
+
+  Injects the autocomplete script on every storefront page. The script binds
+  itself to address inputs it recognises, so there is nothing to place inside
+  a template.
+
+  The Google API key is NOT here and never reaches the browser: requests go to
+  the proxy endpoint configured below, which holds the key server-side.
+{% endcomment %}
+
+{% if block.settings.enabled %}
+  <script>
+    window.TapAndRateAddressAutocomplete = {
+      proxyUrl: {{ block.settings.proxy_url | strip | json }},
+      country: {{ block.settings.country_code | strip | downcase | json }},
+      selectors: {{ block.settings.selectors | strip | json }},
+      minChars: {{ block.settings.min_chars | default: 3 }},
+      debug: {{ block.settings.debug | default: false }}
+    };
+  </script>
+  <link
+    rel="stylesheet"
+    href="{{ 'address-autocomplete.css' | asset_url }}"
+    media="print"
+    onload="this.media='all'"
+  >
+  <script src="{{ 'address-autocomplete.js' | asset_url }}" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Address autocomplete",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable address autocomplete",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "proxy_url",
+      "label": "Address lookup endpoint",
+      "info": "The base URL of your lookup service, with no trailing slash. Example: https://www.tapandrateai.co.uk",
+      "default": "https://www.tapandrateai.co.uk"
+    },
+    {
+      "type": "text",
+      "id": "country_code",
+      "label": "Restrict results to country",
+      "info": "Two-letter code, e.g. GB for the United Kingdom, US for America. Leave blank to search worldwide.",
+      "default": "GB"
+    },
+    {
+      "type": "textarea",
+      "id": "selectors",
+      "label": "Extra address field selectors",
+      "info": "Optional. CSS selectors for address line 1 inputs on custom forms, one per line. The common Shopify fields are detected automatically."
+    },
+    {
+      "type": "range",
+      "id": "min_chars",
+      "label": "Characters before searching",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 3,
+      "info": "Higher values mean fewer lookups and a lower Google bill."
+    },
+    {
+      "type": "checkbox",
+      "id": "debug",
+      "label": "Log diagnostics to the browser console",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

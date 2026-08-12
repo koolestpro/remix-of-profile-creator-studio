@@ -1,0 +1,26 @@
+{% comment %}
+  Google Business lookup — attaches live business search to the store's
+  existing "Add Google Details" inputs (.detail-input).
+
+  Rendered once from layout/theme.liquid. It does not add any fields of its
+  own: it fills the input the theme already collects into the Profile N line
+  item property, so existing validation and cart logic are untouched.
+
+  No Google API key here, and there must never be one — anything Liquid renders
+  is readable in page source. Lookups go to the endpoint below, which holds the
+  key server-side and only answers approved storefront domains.
+{% endcomment %}
+
+{%- assign lookup_endpoint = 'https://www.tapandrateai.co.uk' -%}
+{%- assign restrict_to_country = 'GB' -%}
+
+<script>
+  window.TapAndRateBusinessLookup = {
+    proxyUrl: {{ lookup_endpoint | strip | json }},
+    country: {{ restrict_to_country | strip | downcase | json }},
+    minChars: 3,
+    selector: ".detail-input"
+  };
+</script>
+{{ 'google-business-lookup.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'google-business-lookup.js' | asset_url }}" defer></script>

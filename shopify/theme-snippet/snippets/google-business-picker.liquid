@@ -1,0 +1,92 @@
+{% comment %}
+  Google Business picker — asks the customer which Google listing the product
+  is for, and attaches the answer to the line item.
+
+  Rendered INSIDE the product form (see snippets/product-form.liquid) so the
+  properties[...] inputs post with the item.
+
+  No Google API key here, and there must never be one — anything Liquid renders
+  is visible in page source. Lookups go to the endpoint below, which holds the
+  key server-side and only answers approved storefront domains.
+
+  Settings live in the three assigns at the top.
+{% endcomment %}
+
+{%- assign lookup_endpoint = 'https://www.tapandrateai.co.uk' -%}
+{%- assign restrict_to_country = 'GB' -%}
+{%- assign required = true -%}
+
+<script>
+  window.TapAndRateBusinessPicker = {
+    proxyUrl: {{ lookup_endpoint | strip | json }},
+    country: {{ restrict_to_country | strip | downcase | json }},
+    minChars: 3,
+    required: {{ required | json }}
+  };
+</script>
+{{ 'google-business-picker.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'google-business-picker.js' | asset_url }}" defer></script>
+
+<div class="gbp" data-gbp>
+  <label class="gbp__label" for="gbp-input-{{ product.id }}">
+    Which Google business is this for?{% if required %} <span class="gbp__req">*</span>{% endif %}
+  </label>
+  <p class="gbp__hint">Start typing your business name and pick it from the list.</p>
+
+  {%- comment -%} Search state {%- endcomment -%}
+  <div data-gbp-search>
+    <div class="gbp__field">
+      <input
+        type="text"
+        id="gbp-input-{{ product.id }}"
+        class="gbp__input"
+        placeholder="e.g. Juices4Life Harlesden"
+        autocomplete="off"
+        role="combobox"
+        aria-expanded="false"
+        aria-autocomplete="list"
+        aria-controls="gbp-list-{{ product.id }}"
+        data-gbp-input
+      >
+      <span class="gbp__spinner" aria-hidden="true"></span>
+    </div>
+    <ul id="gbp-list-{{ product.id }}" class="gbp__list" role="listbox" hidden data-gbp-list></ul>
+    <p class="gbp__empty" hidden data-gbp-empty>
+      We couldn't find that on Google.
+    </p>
+    <button type="button" class="gbp__link" data-gbp-cantfind>I can't find my business</button>
+  </div>
+
+  {%- comment -%} Chosen state {%- endcomment -%}
+  <div class="gbp__selected" hidden data-gbp-selected>
+    <div class="gbp__selected-text">
+      <strong data-gbp-selname></strong>
+      <span data-gbp-seladdr></span>
+    </div>
+    <button type="button" class="gbp__link" data-gbp-change>Change</button>
+  </div>
+
+  {%- comment -%} Free-text fallback {%- endcomment -%}
+  <div class="gbp__manual" hidden data-gbp-manual>
+    <p class="gbp__hint">No problem — tell us about your business and we'll set it up by hand.</p>
+    <input type="text" class="gbp__input" placeholder="Business name" data-gbp-mname>
+    <input type="text" class="gbp__input" placeholder="Business address" data-gbp-maddr>
+    <input type="text" class="gbp__input" placeholder="Google Maps link (optional)" data-gbp-mlink>
+    <button type="button" class="gbp__link" data-gbp-back>Search for my business instead</button>
+  </div>
+
+  <p class="gbp__error" hidden data-gbp-error>
+    Please choose your business before adding to cart.
+  </p>
+
+  {%- comment -%}
+    Line item properties. Names starting with an underscore are hidden from the
+    customer on the cart and order pages but still reach you on the order.
+    The script disables any that are empty so blank properties never appear.
+  {%- endcomment -%}
+  <input type="hidden" name="properties[Business]" data-gbp-p-name disabled>
+  <input type="hidden" name="properties[Business address]" data-gbp-p-addr disabled>
+  <input type="hidden" name="properties[_place_id]" data-gbp-p-pid disabled>
+  <input type="hidden" name="properties[_review_url]" data-gbp-p-url disabled>
+  <input type="hidden" name="properties[_needs_setup]" data-gbp-p-flag disabled>
+</div>
