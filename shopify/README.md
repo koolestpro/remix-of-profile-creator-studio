@@ -151,7 +151,7 @@ Quotas.
 |---|---|
 | Nothing happens; console shows a CORS error | Storefront origin missing from `PLACES_ALLOWED_ORIGINS`, or you didn't redeploy after adding it |
 | `403 Origin not allowed` | Same — check apex vs `www` |
-| `500 Address lookup is not configured` | `VITE_GOOGLE_MAPS_API_KEY` not set on Vercel |
+| `500 Address lookup is not configured` | `GOOGLE_MAPS_API_KEY` not set on Vercel |
 | `502 Address lookup unavailable` | Google rejected the key — check Places API (New) is enabled, billing active, restrictions not "HTTP referrers". The Vercel function log has Google's exact message |
 | Works for you, not customers | You edited a draft theme, or you're testing a preview link. See *Verify* above |
 | Suggestions appear but fields don't fill | The form uses non-standard field names — send me the theme code and I'll add the selectors |

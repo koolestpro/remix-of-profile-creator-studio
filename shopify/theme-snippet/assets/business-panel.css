@@ -1,0 +1,354 @@
+/**
+ * "Find Your Google Maps Listing" panel.
+ *
+ * Colours converted from the design's oklch tokens (profile-review-finder,
+ * src/styles.css) to hex, since the theme has no token layer:
+ *   brand #3a86f3 · brand-ink #08307f · brand-soft #eaf3ff
+ *   panel #eff6ff · panel-border #70a6f5 · success #008b45 · danger #d73431
+ *   border #e2e8f0 · muted-foreground #62748e
+ *
+ * Every class and id the theme's own JS depends on is preserved; this is
+ * presentation only.
+ */
+
+.tr-panel {
+  border: 2px solid #70a6f5;
+  background: #eff6ff;
+  border-radius: 12px;
+  padding: 22px 24px;
+  margin: 18px 0 0;
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(58, 134, 243, 0.08);
+}
+
+/**
+ * Heading left, progress pill hard right.
+ *
+ * nowrap plus a shrinkable text block is deliberate: with wrapping allowed the
+ * pill drops onto its own line as soon as the copy is a little wide, which is
+ * what happened in this theme's narrower column. The text reflows instead.
+ */
+.tr-panel__head {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tr-panel__head > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tr-panel__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: #08307f;
+}
+
+.tr-panel__sub {
+  margin: 8px 0 0;
+  max-width: 24rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: rgba(8, 48, 127, 0.8);
+}
+
+.tr-manual-link {
+  color: #3a86f3;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Search vs manual copy — toggled by the .is-manual class on the panel. */
+.tr-panel [data-tr-manual-only] {
+  display: none;
+}
+
+.tr-panel.is-manual [data-tr-manual-only] {
+  display: block;
+}
+
+.tr-panel.is-manual [data-tr-search-only] {
+  display: none;
+}
+
+.tr-panel .tr-label [data-tr-manual-only],
+.tr-panel .tr-label [data-tr-search-only] {
+  display: inline;
+}
+
+.tr-panel.is-manual .tr-label [data-tr-search-only] {
+  display: none;
+}
+
+.tr-panel:not(.is-manual) .tr-label [data-tr-manual-only] {
+  display: none;
+}
+
+/* Progress pill — text is written by the theme's own script. */
+.tr-panel .progress-badge,
+.tr-panel #progressBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 2px solid #3a86f3;
+  border-radius: 6px;
+  background: #3a86f3;
+  color: #fcfcfc;
+  font-weight: 700;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.tr-panel .bb-progress-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+/* Rows */
+#profilesList {
+  margin-top: 20px;
+}
+
+.tr-panel .profile-row,
+.tr-panel .input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.tr-panel .input-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Quantity stays narrow; the location field takes the rest of the row. */
+.tr-panel .input-group:first-child {
+  width: 4.5rem;
+  flex-shrink: 0;
+}
+
+.tr-panel .tr-field--search {
+  flex: 1 1 14rem;
+  position: relative;
+}
+
+.tr-panel .input-group label,
+.tr-panel .tr-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #08307f;
+}
+
+.tr-panel .qty-select,
+.tr-panel .detail-input {
+  height: 2.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.tr-panel .qty-select {
+  padding: 0 0.5rem;
+  font-weight: 600;
+  color: #08307f;
+}
+
+.tr-panel .detail-input {
+  padding: 0 0.75rem 0 2.25rem;
+  color: #020618;
+}
+
+/* No magnifier in manual mode, or on products with no search at all. */
+.tr-panel.is-manual .detail-input,
+.tr-panel--nosearch .detail-input {
+  padding-left: 0.75rem;
+}
+
+.tr-panel.is-manual .tr-search-icon {
+  display: none;
+}
+
+.tr-panel .detail-input::placeholder {
+  color: #62748e;
+}
+
+.tr-panel .qty-select:focus,
+.tr-panel .detail-input:focus {
+  border-color: #3a86f3;
+  box-shadow: 0 0 0 2px rgba(58, 134, 243, 0.3);
+}
+
+/* Wraps the input alone, so the icon centres on the field regardless of how
+   tall the label above it renders in a given theme. */
+.tr-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.tr-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: #62748e;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Remove sits on its own line under the fields, and only when there's a
+   choice to make — a single row can't be removed. */
+.tr-panel .remove-link {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+#profilesList > .profile-row:only-child .remove-link,
+#profilesList > div:only-child .profile-row .remove-link {
+  display: none;
+}
+
+.tr-panel .remove-profile {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #d73431;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Footer */
+.tr-panel__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.tr-panel .add-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #08307f;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tr-panel .add-profile[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tr-panel .add-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  background: #3a86f3;
+  color: #fcfcfc !important;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.tr-cant-find {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #008b45;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.tr-panel .warning-popup {
+  position: absolute;
+  z-index: 20;
+}
+
+/**
+ * Stop iOS zooming the page when the customer taps the search box.
+ *
+ * Safari auto-zooms any focused input whose font-size is below 16px, and the
+ * design's 0.875rem (14px) trips it. The page then stays zoomed after the
+ * keyboard closes, which is what made searching on a phone feel broken.
+ *
+ * Fixed by raising the font to exactly 16px on touch devices rather than by
+ * adding maximum-scale to the viewport tag — that would suppress the zoom but
+ * also stop people pinch-zooming the page at all, which is an accessibility
+ * regression across the whole store.
+ *
+ * Targeted at coarse pointers rather than a width breakpoint so large phones
+ * and tablets in landscape are covered too.
+ */
+@media (hover: none) and (pointer: coarse) {
+  .tr-panel .detail-input,
+  .tr-panel .qty-select {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 749px) {
+  .tr-panel {
+    padding: 18px 14px;
+  }
+
+  .tr-panel__title {
+    font-size: 1.1rem;
+  }
+
+  /* On a phone the pill drops below the heading rather than crushing it. */
+  .tr-panel__head {
+    flex-wrap: wrap;
+  }
+
+  .tr-panel .input-group:first-child {
+    width: 4rem;
+  }
+}

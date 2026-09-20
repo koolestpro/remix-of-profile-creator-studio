@@ -1,0 +1,213 @@
+{%- comment -%}
+  Step 2 — "Find Your Google Maps Listing"
+
+  Matches the approved design (github.com/koolestpro/profile-review-finder),
+  including its manual mode: both "add it manually here" and "Can't Find Your
+  Listing?" switch the panel over to pasting a review link instead of searching.
+
+  IMPORTANT: the theme's scripts in sections/product-custom-template.liquid
+  query these by id/class. Do not rename or remove them:
+
+    #detailsBox  #progressBadge  .bb-progress-label  #profilesList
+    #addProfileBtn  #profileRowTpl  .profile-row  .input-group  .qty-select
+    .warning-popup  .warning-popup-inner  .warning-arrow  .detail-input
+    .remove-profile
+
+  Everything else is presentation.
+{%- endcomment -%}
+
+{%- assign t = product.title | downcase -%}
+{%- assign social = 'Your' -%}
+{%- if t contains 'instagram' -%}
+  {%- assign social = 'Instagram' -%}
+{%- elsif t contains 'google' -%}
+  {%- assign social = 'Google' -%}
+{%- elsif t contains 'facebook' -%}
+  {%- assign social = 'Facebook' -%}
+{%- elsif t contains 'tiktok' -%}
+  {%- assign social = 'Tiktok' -%}
+{%- elsif t contains 'tripadvisor' -%}
+  {%- assign social = 'Tripadvisor' -%}
+{%- elsif t contains 'trustpilot' -%}
+  {%- assign social = 'Trustpilot' -%}
+{%- elsif t contains 'snapchat' -%}
+  {%- assign social = 'Snapchat' -%}
+{%- elsif t contains 'autotrader' -%}
+  {%- assign social = 'Autotrader' -%}
+{%- endif -%}
+
+{%- comment -%}
+  Business search runs on Google Places, so it only makes sense for Google
+  products — Instagram, TikTok, Trustpilot and custom products have no Google
+  listing to look up and get a plain "paste your link" field instead.
+
+  Default is the title check, overridable per product with the
+  custom.enable_business_search metafield so a Google product whose title
+  doesn't contain the word "google" can still be switched on without a code
+  change.
+{%- endcomment -%}
+{%- assign search_enabled = false -%}
+{%- if social == 'Google' and product.metafields.custom.is_custom_product != true -%}
+  {%- assign search_enabled = true -%}
+{%- endif -%}
+{%- if product.metafields.custom.enable_business_search == true -%}
+  {%- assign search_enabled = true -%}
+{%- elsif product.metafields.custom.enable_business_search == false -%}
+  {%- assign search_enabled = false -%}
+{%- endif -%}
+
+{%- assign listing_name = 'Google Maps Listing' -%}
+
+{%- comment -%} Unit for the progress pill: "1/5 PLATES". {%- endcomment -%}
+{%- assign unit = 'items' -%}
+{%- if t contains 'plate' -%}{%- assign unit = 'plates' -%}
+{%- elsif t contains 'stand' -%}{%- assign unit = 'stands' -%}
+{%- elsif t contains 'card' -%}{%- assign unit = 'cards' -%}
+{%- elsif t contains 'sticker' -%}{%- assign unit = 'stickers' -%}
+{%- endif -%}
+
+{{ 'business-panel.css' | asset_url | stylesheet_tag }}
+<script>
+  // Read by the theme's progress-badge code so the pill reads "1/5 PLATES".
+  window.TR_UNIT = {{ unit | json }};
+</script>
+
+<div class="step-header mt-6">
+  <div class="step-line">
+    <div class="step-line-bar"></div>
+    <span class="step-badge">
+      {%- if product.metafields.custom.is_custom_product == true -%}Step 3{%- else -%}Step 2{%- endif -%}
+    </span>
+    <div class="step-line-bar"></div>
+  </div>
+</div>
+
+<div
+  class="details-box tr-panel{% unless search_enabled %} tr-panel--nosearch{% endunless %}"
+  id="detailsBox"
+  data-tr-search="{% if search_enabled %}on{% else %}off{% endif %}"
+>
+  <div class="tr-panel__head">
+    <div>
+      {%- if search_enabled -%}
+        <h2 class="tr-panel__title">
+          <span data-tr-search-only>Find Your {{ listing_name }}</span>
+          <span data-tr-manual-only>Add Your Listing Manually</span>
+        </h2>
+
+        <p class="tr-panel__sub" data-tr-search-only>
+          Search for your business and select your business, if you can not find your
+          business, <button type="button" class="tr-manual-link" data-tr-manual-on>add it manually here</button>.
+        </p>
+        <p class="tr-panel__sub" data-tr-manual-only>
+          Paste your {{ social }} review link, or just add your business name and
+          postcode and we will find the review link for you.
+        </p>
+      {%- else -%}
+        {%- comment -%}
+          No Google listing to search for, so no search box and no manual
+          toggle — just the field.
+        {%- endcomment -%}
+        <h2 class="tr-panel__title">
+          Add Your
+          {%- if product.metafields.custom.is_custom_product == true %} Profile Details
+          {%- else %} {{ social }} Details
+          {%- endif -%}
+        </h2>
+        <p class="tr-panel__sub">
+          {%- if product.metafields.custom.is_custom_product == true -%}
+            Paste the review or profile link you'd like this to point to.
+          {%- else -%}
+            Paste your {{ social }} link, or enter your business name and postcode
+            and we'll set it up for you.
+          {%- endif -%}
+        </p>
+      {%- endif -%}
+    </div>
+
+    <span class="progress-badge" id="progressBadge">
+      <span class="bb-progress-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" class="lucide lucide-circle-check" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="m9 12 2 2 4-4"></path>
+        </svg>
+      </span>
+      <span class="bb-progress-label">0 of 0 products selected</span>
+    </span>
+  </div>
+
+  <div class="space-y-3" id="profilesList"></div>
+
+  <div class="tr-panel__foot">
+    <div class="add-profile" id="addProfileBtn" role="button" tabindex="0">
+      <span class="add-profile-btn">+</span>
+      <span>Add another profile</span>
+    </div>
+    {%- if search_enabled -%}
+      <button type="button" class="tr-cant-find" data-tr-manual-toggle>
+        <span data-tr-search-only>Can't Find Your Listing?</span>
+        <span data-tr-manual-only>Back To Listing Search</span>
+      </button>
+    {%- endif -%}
+  </div>
+</div>
+
+<template id="profileRowTpl">
+  <div class="input-row profile-row">
+    <div class="input-group" style="position:relative">
+      <label>Quantity</label>
+      <select class="qty-select"></select>
+
+      <div class="warning-popup">
+        <div class="warning-popup-inner">
+          <div class="warning-arrow"></div>
+          Too many products selected, please ensure you select the right amount
+        </div>
+      </div>
+    </div>
+
+    <div class="input-group tr-field--search">
+      <span class="tr-label">
+        {%- if search_enabled -%}
+          <span data-tr-search-only>Select Location</span>
+          <span data-tr-manual-only>Review Link or Business Details</span>
+        {%- else -%}
+          Review Link or Business Details
+        {%- endif -%}
+      </span>
+      {%- comment -%}
+        The input sits in its own relative wrapper so the magnifier can centre
+        against the field itself rather than being offset from the label, and so
+        the suggestions dropdown lines up exactly with the input width.
+      {%- endcomment -%}
+      <div class="tr-input-wrap">
+        {%- if search_enabled -%}
+          <svg class="tr-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+          <input
+            type="text"
+            class="detail-input"
+            placeholder="Search here"
+            data-placeholder-search="Search here"
+            data-placeholder-manual="Paste your review link, or enter your business name and postcode"
+          />
+        {%- else -%}
+          <input
+            type="text"
+            class="detail-input"
+            placeholder="Paste your {{ social }} link, or enter your business name and postcode"
+          />
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div class="remove-link">
+      <button type="button" class="remove-profile">Remove</button>
+    </div>
+  </div>
+</template>

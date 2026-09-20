@@ -106,7 +106,7 @@ export function GooglePlaceSearch({
       {misconfigured && !loading && (
         <p className="mt-2 text-xs text-destructive">
           Google returned no results and the server is using a browser-restricted Maps key, which
-          can't be used for server-side lookups. Add VITE_GOOGLE_MAPS_API_KEY (an unrestricted or
+          can't be used for server-side lookups. Add GOOGLE_MAPS_API_KEY (an unrestricted or
           IP-restricted key, with "Places API (New)" enabled) to the hosting environment variables
           and redeploy.
         </p>

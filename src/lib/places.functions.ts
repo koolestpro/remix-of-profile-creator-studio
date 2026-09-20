@@ -2,8 +2,7 @@
  * Google Places text search — runs SERVER-SIDE via createServerFn to avoid
  * CORS / HTTP-referrer-restriction issues with browser requests.
  *
- * Uses VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY from .env.local / Vercel env.
- * No Lovable connector gateway or separate GOOGLE_MAPS_API_KEY required.
+ * Uses GOOGLE_MAPS_API_KEY from .env.local / Vercel env (see maps-key.ts).
  */
 import { createServerFn } from "@tanstack/react-start";
 import { resolveMapsKey, MAPS_KEY_SETUP_MESSAGE } from "@/lib/maps-key";
@@ -101,7 +100,7 @@ export const searchGooglePlaces = createServerFn({ method: "POST" })
     // rejected softly rather than that the business doesn't exist — most often
     // a browser key with HTTP-referrer restrictions being used server-side.
     // Pass a hint back so the UI can say so instead of claiming "no matches".
-    const suspiciousEmpty = results.length === 0 && keySource !== "VITE_GOOGLE_MAPS_API_KEY";
+    const suspiciousEmpty = results.length === 0 && keySource === "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY";
 
     return { results, keySource, suspiciousEmpty };
   });
