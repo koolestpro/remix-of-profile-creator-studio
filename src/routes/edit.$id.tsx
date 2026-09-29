@@ -51,6 +51,7 @@ import type {
 import { createDefaultCardData } from "@/lib/profile-types";
 import { ICON_DEFAULT_TEXT, SOCIAL_ICON_OPTIONS, renderIcon } from "@/lib/icon-registry";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useAuth } from "@/lib/auth";
 import {
   getProfile,
   saveProfile,
@@ -91,6 +92,7 @@ function EditProfile() {
   // Guard: if Supabase is configured and the session has expired, bounce to
   // /login instead of letting saves/uploads fail with a cryptic RLS error.
   const { ready: authReady } = useRequireAuth();
+  const { canDelete } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   // Track the saved slug so we can skip the slug uniqueness DB query on saves
   // where the profile name hasn't changed (cuts save time roughly in half).
@@ -1214,14 +1216,16 @@ function EditProfile() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={handleDelete}
-                  className="h-12 flex-1 border-white/30 bg-transparent text-white hover:bg-white/10 md:flex-none"
-                >
-                  <Trash2 className="mr-2 h-5 w-5" /> Delete
-                </Button>
+                {canDelete && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={handleDelete}
+                    className="h-12 flex-1 border-white/30 bg-transparent text-white hover:bg-white/10 md:flex-none"
+                  >
+                    <Trash2 className="mr-2 h-5 w-5" /> Delete
+                  </Button>
+                )}
                 <Button
                   size="lg"
                   onClick={handleSave}

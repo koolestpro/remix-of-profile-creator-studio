@@ -11,6 +11,17 @@ A one-page guide to running your link profiles. Everything happens in the admin 
 
 There is no public sign-up — accounts are created by the administrator, so only people with a login can reach the dashboard.
 
+## Giving a VA / worker limited (staff) access
+
+A staff login can **create and edit** profiles, folders, images and PDFs, but **cannot delete** anything (profiles, folders or uploaded files). The delete buttons are hidden for them, and the database itself refuses delete requests, so it can't be bypassed.
+
+1. One-time: run `supabase/migrations/011_staff_role.sql` in the Supabase SQL Editor.
+2. In Supabase go to **Authentication → Users → Add user**, enter your VA's email and a password, and tick **Auto Confirm User**.
+3. In the SQL Editor run: `select public.add_staff('va@example.com');`
+4. Give the VA the login details. They sign in at `/login` like everyone else.
+
+To turn them back into a full admin: `select public.remove_staff('va@example.com');`. To remove their access entirely, delete the user under Authentication → Users. Every login that isn't listed as staff stays a full admin.
+
 ## Creating a profile
 
 1. In the purple **"Create a new profile"** box, type a name (this is just a label for you, e.g. "Juices4Life — Wembley").
