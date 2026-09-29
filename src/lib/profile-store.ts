@@ -450,6 +450,20 @@ export async function createFolder(name: string, color?: string): Promise<Folder
   return rowToFolder(data as FolderRow);
 }
 
+/**
+ * Thrown when a delete removed nothing. Row-level security doesn't error on a
+ * blocked delete, it just matches 0 rows, so staff accounts (which may not
+ * delete) would otherwise see a false "deleted" message.
+ */
+export class DeleteNotAllowedError extends Error {
+  constructor() {
+    super("You don't have permission to delete.");
+    this.name = "DeleteNotAllowedError";
+  }
+}
+
+export const DELETE_DENIED_MESSAGE = "You don't have access to delete. Ask the account owner.";
+
 export async function deleteFolder(id: string): Promise<void> {
   if (!supabase) {
     localWriteFolders(localListFolders().filter((f) => f.id !== id));
@@ -460,8 +474,9 @@ export async function deleteFolder(id: string): Promise<void> {
     return;
   }
   // profiles.folder_id is ON DELETE SET NULL, so the DB reassigns them.
-  const { error } = await supabase.from("folders").delete().eq("id", id);
+  const { data, error } = await supabase.from("folders").delete().eq("id", id).select("id");
   if (error) throw error;
+  if (!data || data.length === 0) throw new DeleteNotAllowedError();
 }
 
 export async function renameFolder(id: string, name: string): Promise<void> {
@@ -687,8 +702,9 @@ export async function deleteProfile(id: string): Promise<void> {
     localWriteProfiles(localListProfiles().filter((p) => p.id !== id));
     return;
   }
-  const { error } = await supabase.from("profiles").delete().eq("id", id);
+  const { data, error } = await supabase.from("profiles").delete().eq("id", id).select("id");
   if (error) throw error;
+  if (!data || data.length === 0) throw new DeleteNotAllowedError();
 }
 
 export async function deleteProfiles(ids: string[]): Promise<void> {
@@ -697,8 +713,9 @@ export async function deleteProfiles(ids: string[]): Promise<void> {
     localWriteProfiles(localListProfiles().filter((p) => !set.has(p.id)));
     return;
   }
-  const { error } = await supabase.from("profiles").delete().in("id", ids);
+  const { data, error } = await supabase.from("profiles").delete().in("id", ids).select("id");
   if (error) throw error;
+  if (!data || data.length < ids.length) throw new DeleteNotAllowedError();
 }
 
 export async function setProfilesPaused(ids: string[], paused: boolean): Promise<void> {

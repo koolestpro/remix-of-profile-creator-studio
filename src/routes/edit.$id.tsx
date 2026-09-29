@@ -56,6 +56,8 @@ import {
   getProfile,
   saveProfile,
   deleteProfile,
+  DeleteNotAllowedError,
+  DELETE_DENIED_MESSAGE,
   slugify,
   uploadPdf,
   uploadImage,
@@ -267,8 +269,8 @@ function EditProfile() {
       await deleteProfile(id);
       toast.success("Profile deleted");
       navigate({ to: "/" });
-    } catch {
-      toast.error("Couldn't delete. Please try again.");
+    } catch (e) {
+      toast.error(e instanceof DeleteNotAllowedError ? DELETE_DENIED_MESSAGE : "Couldn't delete. Please try again.");
     }
   };
 

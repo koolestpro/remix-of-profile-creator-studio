@@ -20,6 +20,18 @@ A staff login can **create and edit** profiles, folders, images and PDFs, but **
 3. In the SQL Editor run: `select public.add_staff('va@example.com');`
 4. Give the VA the login details. They sign in at `/login` like everyone else.
 
+To see who has which access, run this in the SQL Editor:
+
+```sql
+select u.email,
+       case when s.user_id is not null then 'staff (no delete)' else 'admin' end as access
+from auth.users u
+left join public.staff_users s on s.user_id = u.id
+order by access, u.email;
+```
+
+If a staff member somehow still sees a Delete button, the site hasn't been redeployed with the latest code. Even then, deletes are blocked and they'll get a "You don't have access to delete" message.
+
 To turn them back into a full admin: `select public.remove_staff('va@example.com');`. To remove their access entirely, delete the user under Authentication → Users. Every login that isn't listed as staff stays a full admin.
 
 ## Creating a profile

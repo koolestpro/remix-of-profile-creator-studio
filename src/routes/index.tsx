@@ -70,6 +70,8 @@ import {
   createProfile,
   deleteProfile,
   deleteProfiles,
+  DeleteNotAllowedError,
+  DELETE_DENIED_MESSAGE,
   setProfilesPaused,
   duplicateProfile,
   slugify,
@@ -245,8 +247,8 @@ function Portal() {
       await deleteProfile(pendingDelete.id);
       await refresh();
       toast.success("Profile deleted");
-    } catch {
-      toast.error("Couldn't delete profile.");
+    } catch (e) {
+      toast.error(e instanceof DeleteNotAllowedError ? DELETE_DENIED_MESSAGE : "Couldn't delete profile.");
     }
     setPendingDelete(null);
   };
@@ -311,8 +313,8 @@ function Portal() {
       if (activeFolder === pendingDeleteFolder.id) setActiveFolder(ALL);
       await refresh();
       toast.success("Folder deleted");
-    } catch {
-      toast.error("Couldn't delete folder.");
+    } catch (e) {
+      toast.error(e instanceof DeleteNotAllowedError ? DELETE_DENIED_MESSAGE : "Couldn't delete folder.");
     }
     setPendingDeleteFolder(null);
   };
@@ -430,8 +432,9 @@ function Portal() {
       clearSelection();
       await refresh();
       toast.success(`Deleted ${count} profile${count === 1 ? "" : "s"}`);
-    } catch {
-      toast.error("Couldn't delete profiles.");
+    } catch (e) {
+      toast.error(e instanceof DeleteNotAllowedError ? DELETE_DENIED_MESSAGE : "Couldn't delete profiles.");
+      await refresh();
     }
     setPendingBulkDelete(false);
   };
