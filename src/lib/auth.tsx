@@ -16,6 +16,12 @@ interface AuthState {
   /** False when Supabase keys aren't set yet — auth is effectively off. */
   configured: boolean;
   /**
+   * False for staff (VA/worker) accounts, which may create and edit but not
+   * delete. Cosmetic only — the database's row-level security is what
+   * actually blocks deletes (see supabase/migrations/011_staff_role.sql).
+   */
+  canDelete: boolean;
+  /**
    * Step 1 of 2FA: verifies the password, signs out immediately, then sends
    * a 6-digit OTP to the email address.
    * Returns { needsOtp: true } on success, or { error } on failure.
@@ -44,6 +50,29 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // null = role not resolved yet; delete controls stay hidden until it is.
+  const [isStaff, setIsStaff] = useState<boolean | null>(null);
+
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    if (!supabase || !userId) {
+      setIsStaff(null);
+      return;
+    }
+    let active = true;
+    supabase
+      .from("staff_users")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        // Missing table (migration not run yet) or any error => full admin.
+        if (active) setIsStaff(!error && !!data);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!supabase) {
@@ -139,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         configured: isSupabaseConfigured,
+        canDelete: !isSupabaseConfigured || isStaff === false,
         signIn,
         verifyOtp,
         resendOtp,

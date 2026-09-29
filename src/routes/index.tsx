@@ -70,6 +70,8 @@ import {
   createProfile,
   deleteProfile,
   deleteProfiles,
+  DeleteNotAllowedError,
+  DELETE_DENIED_MESSAGE,
   setProfilesPaused,
   duplicateProfile,
   slugify,
@@ -111,7 +113,7 @@ const UNCATEGORIZED = "__uncategorized__";
 
 function Portal() {
   const navigate = useNavigate();
-  const { configured, signOut } = useAuth();
+  const { configured, signOut, canDelete } = useAuth();
   // Guard: redirect to /login when session expires or after sign out.
   // This also handles the browser back-button after logout.
   useRequireAuth();
@@ -245,8 +247,8 @@ function Portal() {
       await deleteProfile(pendingDelete.id);
       await refresh();
       toast.success("Profile deleted");
-    } catch {
-      toast.error("Couldn't delete profile.");
+    } catch (e) {
+      toast.error(e instanceof DeleteNotAllowedError ? DELETE_DENIED_MESSAGE : "Couldn't delete profile.");
     }
     setPendingDelete(null);
   };
@@ -311,8 +313,8 @@ function Portal() {
       if (activeFolder === pendingDeleteFolder.id) setActiveFolder(ALL);
       await refresh();
       toast.success("Folder deleted");
-    } catch {
-      toast.error("Couldn't delete folder.");
+    } catch (e) {
+      toast.error(e instanceof DeleteNotAllowedError ? DELETE_DENIED_MESSAGE : "Couldn't delete folder.");
     }
     setPendingDeleteFolder(null);
   };
@@ -430,8 +432,9 @@ function Portal() {
       clearSelection();
       await refresh();
       toast.success(`Deleted ${count} profile${count === 1 ? "" : "s"}`);
-    } catch {
-      toast.error("Couldn't delete profiles.");
+    } catch (e) {
+      toast.error(e instanceof DeleteNotAllowedError ? DELETE_DENIED_MESSAGE : "Couldn't delete profiles.");
+      await refresh();
     }
     setPendingBulkDelete(false);
   };
@@ -519,7 +522,7 @@ function Portal() {
                   color={f.color}
                   label={f.name}
                   count={countFor(f.id)}
-                  onDelete={() => handleDeleteFolder(f)}
+                  onDelete={canDelete ? () => handleDeleteFolder(f) : undefined}
                   onRename={(name) => handleRenameFolder(f.id, name)}
                 />
               ))}
@@ -776,7 +779,7 @@ function Portal() {
                           </>
                         )}
                       </Button>
-                      {!allVisibleSelected && (
+                      {canDelete && !allVisibleSelected && (
                         <Button
                           size="sm"
                           variant="destructive"
@@ -803,7 +806,7 @@ function Portal() {
                     folders={folders}
                     selected={selected.has(p.id)}
                     onToggleSelect={() => toggleSelected(p.id)}
-                    onDelete={() => handleDelete(p)}
+                    onDelete={canDelete ? () => handleDelete(p) : undefined}
                     onDuplicate={() => handleDuplicate(p)}
                     onCopyUrl={() => handleCopyUrl(p)}
                     onMoveToFolder={(folderId) => handleMoveToFolder(p.id, folderId)}
@@ -1014,7 +1017,8 @@ function ProfileCard({
   folders: Folder[];
   selected: boolean;
   onToggleSelect: () => void;
-  onDelete: () => void;
+  /** Omitted for staff accounts, which can't delete. */
+  onDelete?: () => void;
   onDuplicate: () => void;
   onCopyUrl: () => void;
   onMoveToFolder: (folderId: string | null) => void;
@@ -1280,12 +1284,14 @@ function ProfileCard({
             <DropdownMenuItem onClick={() => window.open(`/p/${slug}`, "_blank")}>
               <ExternalLink className="mr-2 h-4 w-4" /> Open public URL
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={onDelete}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Delete profile
-            </DropdownMenuItem>
+            {onDelete && (
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete profile
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <label
